@@ -1,0 +1,19 @@
+{
+  "rules": {
+    ".read": true,
+    ".write": false,
+    "appData": {
+      ".read": true,
+      ".write": "auth != null && auth.token.email == 'mjdshbyr449@gmail.com'"
+    },
+    "adminOnly": {
+      ".read": "auth != null && auth.token.email == 'mjdshbyr449@gmail.com'",
+      ".write": false,
+      "ping": { ".read": "auth != null && auth.token.email == 'mjdshbyr449@gmail.com'" }
+    },
+    "accessLogs": {
+      ".read": "auth != null && auth.token.email == 'mjdshbyr449@gmail.com'",
+      ".write": "auth != null"
+    }
+  }
+}

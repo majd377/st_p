@@ -1,0 +1,13 @@
+{
+  "name": "منصة  عـــالَمے النُـبـلاءِ || 𝟐𝟎𝟏𝟎 ",
+  "short_name": "عـــالَمے النُـبـلاءِ",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#fff9ef",
+  "theme_color": "#000000",
+  "lang": "ar",
+  "icons": [
+    { "src": "لوجو.png", "sizes": "200x200", "type": "image/png" },
+    { "src": "لوجو.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

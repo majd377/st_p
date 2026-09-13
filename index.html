@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#eef4f7">
+<meta name="description" content="بوابة طلابية لعرض الحصص والواجبات والتسجيلات والاختبارات والتقدم والملفات والروابط.">
+<meta property="og:locale" content="ar">
+<meta property="og:type" content="website">
+<meta property="og:title" content="بوابة الطلاب">
+<meta property="og:description" content="بوابة طلابية بسيطة وواضحة للطلاب.">
+<link rel="icon" href="لوجو.png">
+<link rel="apple-touch-icon" href="لوجو.png">
+<link rel="stylesheet" href="assets/css/style.css">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="assets/js/firebase-config.js"></script>
+<script>window.APP_ROLE='viewer';window.IS_ADMIN=false;window.AUTH_USER=null;</script>
+<script defer src="assets/js/app.js"></script>
+</head> -->
+    
+    
+    <title>❄ بوابة الطلاب || 𝟐𝟎𝟏𝟎 ❄</title>
+    
+</head>
+<body>
+
+    <!-- Splash Overlay -->
+    <div id="splash-overlay" class="splash-overlay">
+        <div class="splash-content">
+            <img src="لوجو.png" id="splash-logo" class="splash-logo" alt="شعار">
+            <h1 id="splash-text">أهلاً بكم في بوابتكم التعليمية</h1>
+        </div>
+        <div id="splash-circle" class="splash-circle" aria-hidden="true"></div>
+    </div>
+
+
+    <nav class="sidebar" id="sidebar">
+        <div class="logo">
+            <img src="لوجو.png" class="site-logo" alt="شعار الموقع" style="width:28px; height:28px; object-fit:cover; margin-inline-end:8px; vertical-align:middle; border-radius:4px;">بوابة الطلاب 
+        </div>
+        <ul class="nav-links">
+            <li class="nav-item active" onclick="showSection('home')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                الرئيسية
+            </li>
+            <li class="nav-item" onclick="showSection('live-links')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="2"></circle><path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"></path></svg>
+                روابط الحصص
+            </li>
+            <li class="nav-item admin-only" onclick="showSection('weekly-schedule')">🗓️ الجدول الأسبوعي</li>
+            <li class="nav-item admin-only" onclick="showSection('access-logs')">🔔 إشعارات الدخول</li>
+            <li class="nav-item" onclick="showSection('assignments')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                الواجبات
+            </li>
+            <li class="nav-item" onclick="showSection('recordings')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                تسجيلات الحصص
+            </li>
+            <li class="nav-item" onclick="showSection('exams')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"></rect><line x1="2" y1="17" x2="22" y2="17"></line><path d="M6 8h4M14 8h4M6 13h4M14 13h4"></path></svg>
+                الاختبارات
+            </li>
+            <li class="nav-item" onclick="showSection('progress')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                التقدم بالمنهج
+            </li>
+            <li class="nav-item" onclick="showSection('books-packages')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="7" width="18" height="13" rx="2"></rect>
+                    <path d="M16 3v4"></path>
+                    <path d="M8 3v4"></path>
+                </svg>
+                الكتب والرزم
+            </li>
+            <li class="nav-item" onclick="showSection('summaries')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                التلخيصات
+            </li>
+            <li class="nav-item" onclick="showSection('teachers')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-3-3.87"></path><path d="M4 21v-2a4 4 0 0 1 3-3.87"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                أسماء الأساتذة
+            </li>
+            <li class="nav-item" onclick="showSection('group-links')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h18M3 12h18M3 17h18"></path></svg>
+                روابط المجموعات
+            </li>
+            <li class="nav-item" onclick="showSection('support')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                أرقام الدعم
+            </li>
+            <li class="nav-item" onclick="showSection('important-links')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                روابط مهمة
+            </li>
+            <li class="nav-item" onclick="showSection('news')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+                آخر الأخبار
+            </li>
+            <li class="nav-item" onclick="showSection('settings')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m6.08 0l4.24-4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m6.08 0l4.24 4.24"></path></svg>
+                الإعدادات
+            </li>
+            <li class="nav-item" onclick="showSection('about-team')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                فريق التطوير
+            </li>
+        </ul>
+    </nav>
+
+    <!-- PWA install banner (hidden by default) -->
+    <div id="pwa-install-banner" style="display:none; position:fixed; left:16px; right:16px; bottom:18px; background:#fff; border-radius:10px; box-shadow:0 8px 20px rgba(0,0,0,0.08); padding:12px 14px; z-index:2000; direction:rtl; align-items:center; gap:10px;">
+        <div style="display:flex; gap:10px; align-items:center;">
+            <img src="لوجو.png" alt="icon" style="width:44px; height:44px; border-radius:8px; object-fit:cover;">
+            <div style="text-align:right;">
+                <div style="font-weight:700;">تثبيت التطبيق</div>
+                <div style="color:var(--text-light); font-size:0.95rem;">يمكنك تثبيت منصة  " بوابة الطلاب || 𝟐𝟎𝟏𝟎 " كتطبيق</div>
+            </div>
+        </div>
+        <div style="margin-inline-start:auto; display:flex; gap:8px;">
+            <button id="btnDismissPWA" class="btn-sm btn-delete" style="background:#ef4444;">إغلاق</button>
+            <button id="btnInstallPWA" class="btn-sm btn-save">تثبيت</button>
+        </div>
+    </div>
+
+    <main class="main-content">
+        <div class="header"><div class="admin-topbar"><span class="admin-badge">وضع المشاهدة</span><a class="btn-link" href="admin/">لوحة الإدارة</a></div>
+            <div class="header-inner"><div class="page-title">
+                <h1 id="page-heading">الرئيسية</h1>
+                <p id="current-date">جاري تحميل التاريخ...</p>
+            </div></div>
+            
+            
+        </div>
+
+        
+
+        <div id="home" class="content-area active">
+            <div class="dashboard-grid">
+                <div class="feature-card" onclick="showSection('live-links')">
+                    <div class="feature-icon">🔗</div>
+                    <h3>حصص اليوم</h3>
+                    <p>روابط الحصص أول بأول</p>
+                </div>
+                <div class="feature-card" onclick="showSection('assignments')">
+                    <div class="feature-icon">📝</div>
+                    <h3>الواجبات</h3>
+                    <p>تصفح سجل الواجبات اليومية وتحقق منها</p>
+                </div>
+                <div class="feature-card" onclick="showSection('recordings')">
+                    <div class="feature-icon">🎥</div>
+                    <h3>تسجيلات الحصص</h3>
+                    <p>جميع روابط تسجيلات الحصص في مكان واحد على اليوتيوب)</p>
+                </div>
+                <div class="feature-card" onclick="showSection('exams')">
+                    <div class="feature-icon">📋</div>
+                    <h3>الاختبارات</h3>
+                    <p>جدول الاختبارات والملحقات</p>
+                </div>
+                <div class="feature-card" onclick="showSection('progress')">
+                    <div class="feature-icon">📊</div>
+                    <h3>التقدم بالمنهج</h3>
+                    <p>تابع وصولك في كل مادة لكل شعبة (لوين واصلين)</p>
+                </div>
+                <div class="feature-card" onclick="showSection('books-packages')">
+                    <div class="feature-icon">🌟</div>
+                    <h3>الكتب والرزم</h3>
+                    <p>حمل الكتب والرزم بسهولة</p>
+                </div>
+                <div class="feature-card" onclick="showSection('summaries')">
+                    <div class="feature-icon">📚</div>
+                    <h3>التلخيصات والملفات</h3>
+                    <p>نزّل ملفات التلخيص المهمة</p>
+                </div>
+                <div class="feature-card" onclick="showSection('teachers')">
+                    <div class="feature-icon">🏫</div>
+                    <h3>أسماء الأساتذة</h3>
+                    <p>قائمة الأساتذة مقسمة حسب الشعب</p>
+                </div>
+                <div class="feature-card" onclick="showSection('group-links')">
+                    <div class="feature-icon">🌷</div>
+                    <h3>روابط المجموعات</h3>
+                    <p>روابط مجموعات جميع الشُعب</p>
+                </div>
+                <div class="feature-card" onclick="showSection('support')">
+                    <div class="feature-icon">📞</div>
+                    <h3>أرقام الدعم</h3>
+                    <p>تواصل مع المسؤولين عند الحاجة</p>
+                </div>
+                <div class="feature-card" onclick="showSection('important-links')">
+                    <div class="feature-icon">🌷</div>
+                    <h3>روابط مهمة</h3>
+                    <p>لأفضل المصادر</p>
+                </div>
+                <div class="feature-card" onclick="showSection('news')">
+                    <div class="feature-icon">📰</div>
+                    <h3>آخر الأخبار</h3>
+                    <p>تابع أحدث أخبار التعليم لـ جيل 2010</p>
+                </div>
+                <div class="feature-card" onclick="showSection('settings')">
+                    <div class="feature-icon">⚙️</div>
+                    <h3>الإعدادات</h3>
+                    <p>إدارة الإعدادات والخيارات</p>
+                </div>
+                <div class="feature-card" onclick="showSection('about-team')">
+                    <div class="feature-icon">🤠</div>
+                    <h3>فريق التطوير</h3>
+                    <p>للتواصل معنا...</p>
+                </div>
+                
+            </div>
+        </div>
+
+        <div id="progress" class="content-area">
+            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()" id="backBtn">⬅️ رجوع</button>
+            <div class="section-selector" id="progress-sec-selector"></div>
+            <div id="progress-list"></div>
+        </div>
+
+        <div id="recordings" class="content-area">
+            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()" id="backBtn">⬅️ رجوع</button>
+            <div class="section-selector" id="record-sec-selector"></div>
+            <div class="filters-row" style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
+                <label style="color:var(--text-light);">عرض:</label>
+                <select id="record-filter-mode" class="editable-input" style="width:160px;" onchange="renderRecordings()">
+                    <option value="all">كل التسجيلات</option>
+                    <option value="date">حسب التاريخ</option>
+                </select>
+                <div class="date-subj-group" style="display:flex; gap:8px; align-items:center;">
+                    <input type="date" id="record-filter-date" class="editable-input" style="max-width:180px; display:none;" onchange="renderRecordings()">
+                    <div style="display:flex; gap:6px; align-items:center;">
+                        <label style="color:var(--text-light);">المادة:</label>
+                        <select id="record-filter-subject" class="editable-input" style="width:180px;" onchange="renderRecordings()">
+                            <option value="all">كل المواد</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div id="recordings-channel-box" style="margin-bottom:10px;">
+                <!-- will be filled by renderRecordings() -->
+            </div>
+            <div id="recordings-list"></div>
+            <div class="add-new-container">
+                <h4>إضافة تسجيل جديد للشعبة الحالية</h4>
+                <input type="text" id="new-record-title" class="editable-input" placeholder="اسم التسجيل (مثلاً: تسجيل أول الحصة)">
+                <input type="text" id="new-record-link" class="editable-input" placeholder="رابط يوتيوب (https://...)">
+                <label style="margin-top:8px; color:var(--text-light);">المادة (اختياري):</label>
+                <select id="new-record-subject" class="editable-input" style="margin-bottom:8px;">
+                    <option value="">--- اختر مادة ---</option>
+                </select>
+                <label style="margin-top:8px; color:var(--text-light);">تاريخ التسجيل (اختياري):</label>
+                <input type="date" id="new-record-date" class="editable-input" style="margin-bottom:8px;">
+                <button class="btn-sm btn-add" onclick="addRecording()">إضافة تسجيل</button>
+                <div style="margin-top:12px; color:var(--text-light);">ملاحظة: يمكنك إضافة رابط شامل لكل مادة من إعدادات الشعبة أسفل كل قائمة التسجيلات.</div>
+            </div>
+        </div>
+
+        <div id="exams" class="content-area">
+            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()" id="backBtn">⬅️ رجوع</button>
+            <div class="section-selector" id="exams-sec-selector"></div>
+            <div id="exams-list"></div>
+            <div class="add-new-container">
+                <h4>إضافة اختبار جديد للشعبة الحالية</h4>
+                <input type="text" id="new-exam-title" class="editable-input" placeholder="اسم الاختبار (مثلاً: اختبار الفترة الأولى)" style="margin-bottom:10px;">
+                <label style="margin-top:8px; color:var(--text-light);">المادة (اختياري):</label>
+                <select id="new-exam-subject" class="editable-input" style="margin-bottom:8px;">
+                    <option value="">--- اختر مادة ---</option>
+                </select>
+                <label style="margin-top:8px; color:var(--text-light);">التاريخ (اختياري):</label>
+                <input type="date" id="new-exam-date" class="editable-input" style="margin-bottom:8px;">
+                
+                <!-- Attachment Section -->
+                <div style="margin-top:15px; padding:12px; background:#f0f0f0; border-radius:8px;">
+                    <label style="color:var(--text-light); font-weight:bold;">إضافة ملحقات (اختياري - يمكن أكثر من ملحق):</label>
+                    <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+                        <button type="button" class="btn-sm" style="background:#4CAF50; color:white;" onclick="selectExamAttachmentType('image')">📷 صورة</button>
+                        <button type="button" class="btn-sm" style="background:#2196F3; color:white;" onclick="selectExamAttachmentType('link')">🔗 رابط</button>
+                        <button type="button" class="btn-sm" style="background:#FF9800; color:white;" onclick="selectExamAttachmentType('file')">📎 ملف</button>
+                    </div>
+                    
+                    <div id="exam-attachment-image-section" style="display:none; margin-top:10px;">
+                        <label style="color:var(--text-light); font-size:0.9rem;">اختر صورة:</label>
+                        <input type="file" id="exam-attachment-image-input" class="editable-input" accept="image/*" style="margin-bottom:8px;">
+                        <div id="exam-attachment-image-preview" style="max-width:150px; margin-top:8px;"></div>
+                    </div>
+                    
+                    <div id="exam-attachment-link-section" style="display:none; margin-top:10px;">
+                        <label style="color:var(--text-light); font-size:0.9rem;">رابط الملف:</label>
+                        <input type="text" id="exam-attachment-link-input" class="editable-input" placeholder="https://...">
+                    </div>
+                    
+                    <div id="exam-attachment-file-section" style="display:none; margin-top:10px;">
+                        <label style="color:var(--text-light); font-size:0.9rem;">اختر ملف (Word, Excel, PDF, PowerPoint):</label>
+                        <input type="file" id="exam-attachment-file-input" class="editable-input" accept=".doc,.docx,.xls,.xlsx,.pdf,.ppt,.pptx" style="margin-bottom:8px;">
+                        <div id="exam-attachment-file-preview" style="font-size:0.85rem; color:var(--text-light); margin-top:8px;"></div>
+                    </div>
+                    
+                    <button type="button" class="btn-sm" style="background:#9C27B0; color:white; margin-top:8px;" onclick="clearExamAttachment()">✕ إزالة الملحق الحالي</button>
+                    <button type="button" class="btn-sm" style="background:#06b6d4; color:white; margin-top:8px; margin-inline-start:8px;" onclick="addCurrentExamAttachmentToNew()">➕ أضف الملحق لقائمة الملحقات</button>
+                    <div id="new-exam-attachments-list" style="margin-top:10px;"></div>
+                </div>
+                
+                <button class="btn-sm btn-add" onclick="addExam()">إضافة اختبار</button>
+            </div>
+        </div>
+
+        <div id="assignments" class="content-area">
+            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()" id="backBtn">⬅️ رجوع</button>
+            <div class="section-selector" id="assign-sec-selector"></div>
+            <div class="filters-row" style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
+                <label style="color:var(--text-light);">عرض:</label>
+                <select id="assign-filter-mode" class="editable-input" style="width:160px;" onchange="renderAssignments()">
+                    <option value="all">كل الواجبات</option>
+                    <option value="date">حسب التاريخ</option>
+                </select>
+                <div class="date-subj-group" style="display:flex; gap:8px; align-items:center;">
+                    <input type="date" id="assign-filter-date" class="editable-input" style="max-width:180px; display:none;" onchange="renderAssignments()">
+                    <div style="display:flex; gap:6px; align-items:center;">
+                        <label style="color:var(--text-light);">المادة:</label>
+                        <select id="assign-filter-subject" class="editable-input" style="width:180px;" onchange="renderAssignments()">
+                            <option value="all">كل المواد</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div id="assignments-list"></div>
+            <div class="add-new-container">
+                <h4>إضافة واجب جديد للشعبة الحالية</h4>
+                <input type="text" id="new-assignment-text" class="editable-input" placeholder="اكتب تفاصيل الواجب هنا...">
+                <label style="margin-top:8px; color:var(--text-light);">المادة (اختياري):</label>
+                <select id="new-assignment-subject" class="editable-input" style="margin-bottom:8px;">
+                    <option value="">--- اختر مادة ---</option>
+                </select>
+                <label style="margin-top:8px; color:var(--text-light);">تاريخ الواجب (اختياري):</label>
+                <input type="date" id="new-assignment-date" class="editable-input" style="margin-bottom:8px;">
+                
+                <!-- Attachment Section -->
+                <div style="margin-top:15px; padding:12px; background:#f0f0f0; border-radius:8px;">
+                    <label style="color:var(--text-light); font-weight:bold;">إضافة ملحق (اختياري):</label>
+                    <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+                        <button type="button" class="btn-sm" style="background:#4CAF50; color:white;" onclick="selectAttachmentType('image')">📷 صورة</button>
+                        <button type="button" class="btn-sm" style="background:#2196F3; color:white;" onclick="selectAttachmentType('link')">🔗 رابط</button>
+                        <button type="button" class="btn-sm" style="background:#FF9800; color:white;" onclick="selectAttachmentType('file')">📎 ملف</button>
+                    </div>
+                    
+                    <div id="attachment-image-section" style="display:none; margin-top:10px;">
+                        <label style="color:var(--text-light); font-size:0.9rem;">اختر صورة:</label>
+                        <input type="file" id="attachment-image-input" class="editable-input" accept="image/*" style="margin-bottom:8px;">
+                        <div id="attachment-image-preview" style="max-width:150px; margin-top:8px;"></div>
+                    </div>
+                    
+                    <div id="attachment-link-section" style="display:none; margin-top:10px;">
+                        <label style="color:var(--text-light); font-size:0.9rem;">رابط الملف:</label>
+                        <input type="text" id="attachment-link-input" class="editable-input" placeholder="https://...">
+                    </div>
+                    
+                    <div id="attachment-file-section" style="display:none; margin-top:10px;">
+                        <label style="color:var(--text-light); font-size:0.9rem;">اختر ملف (Word, Excel, PDF, PowerPoint):</label>
+                        <input type="file" id="attachment-file-input" class="editable-input" accept=".doc,.docx,.xls,.xlsx,.pdf,.ppt,.pptx" style="margin-bottom:8px;">
+                        <div id="attachment-file-preview" style="font-size:0.85rem; color:var(--text-light); margin-top:8px;"></div>
+                    </div>
+                    
+                    <button type="button" class="btn-sm" style="background:#9C27B0; color:white; margin-top:8px;" onclick="clearAttachment()">✕ إزالة الملحق</button>
+                    <button type="button" class="btn-sm" style="background:#06b6d4; color:white; margin-top:8px; margin-inline-start:8px;" onclick="addCurrentAttachmentToNewAssignment()">➕ أضف الملحق لقائمة الملحقات</button>
+                    <div id="new-assignment-attachments-list" style="margin-top:10px;"></div>
+                </div>
+                
+                <button class="btn-sm btn-add" onclick="addAssignment()">إضافة واجب</button>
+            </div>
+        </div>
+
+        <div id="support" class="content-area">
+            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()" id="backBtn">⬅️ رجوع</button>
+            <div id="support-list"></div>
+            <div class="add-new-container">
+                <h4>إضافة رقم دعم جديد</h4>
+                <input type="text" id="new-support-name" class="editable-input" placeholder="الاسم / المسؤول" style="margin-bottom: 10px;">
+                <input type="text" id="new-support-role" class="editable-input" placeholder="الدور / الوظيفة" style="margin-bottom: 10px;">
+                <input type="text" id="new-support-num" class="editable-input" placeholder="رقم الهاتف">
+                <button class="btn-sm btn-add" onclick="addSupport()">إضافة</button>
+            </div>
+        </div>
+
+        <div id="summaries" class="content-area">
+            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()" id="backBtn">⬅️ رجوع</button>
+            <div id="summaries-list"></div>
+            <div class="add-new-container">
+                <h4>إضافة ملف جديد</h4>
+                <input type="text" id="new-summ-title" class="editable-input" placeholder="اسم الملف / المادة" style="margin-bottom: 10px;">
+                <input type="text" id="new-summ-link" class="editable-input" placeholder="رابط التحميل (Google Drive مثلاً)">
+                <button class="btn-sm btn-add" onclick="addSummary()">إضافة</button>
+            </div>
+        </div>
+
+        <div id="live-links" class="content-area">
+            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()" id="backBtn">⬅️ رجوع</button>
+            <div class="section-selector" id="live-sec-selector"></div>
+            <div id="live-list"></div>
+        </div>
+
+        <div id="news" class="content-area">
+            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()" id="backBtn">⬅️ رجوع</button>
+            <div id="news-list"></div>
+            <div class="add-new-container">
+                <h4>إضافة خبر جديد</h4>
+                <input type="text" id="new-news-title" class="editable-input" placeholder="عنوان الخبر" style="margin-bottom: 10px;">
+                <textarea id="new-news-content" class="editable-textarea" placeholder="محتوى الخبر..." style="min-height: 100px; margin-bottom: 10px;"></textarea>
+                
+                <!-- News Attachment Section -->
+                <div style="margin-top:15px; padding:12px; background:#f0f0f0; border-radius:8px;">
+                    <label style="color:var(--text-light); font-weight:bold;">إضافة ملحق (اختياري):</label>
+                    <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+                        <button type="button" class="btn-sm" style="background:#4CAF50; color:white;" onclick="selectNewsAttachmentType('image')">📷 صورة</button>
+                        <button type="button" class="btn-sm" style="background:#2196F3; color:white;" onclick="selectNewsAttachmentType('link')">🔗 رابط</button>
+                        <button type="button" class="btn-sm" style="background:#FF9800; color:white;" onclick="selectNewsAttachmentType('file')">📎 ملف</button>
+                    </div>
+                    
+                    <div id="news-attachment-image-section" style="display:none; margin-top:10px;">
+                        <label style="color:var(--text-light); font-size:0.9rem;">اختر صورة:</label>
+                        <input type="file" id="news-attachment-image-input" class="editable-input" accept="image/*" style="margin-bottom:8px;">
+                        <div id="news-attachment-image-preview" style="max-width:150px; margin-top:8px;"></div>
+                    </div>
+                    
+                    <div id="news-attachment-link-section" style="display:none; margin-top:10px;">
+                        <label style="color:var(--text-light); font-size:0.9rem;">رابط الملف:</label>
+                        <input type="text" id="news-attachment-link-input" class="editable-input" placeholder="https://...">
+                    </div>
+                    
+                    <div id="news-attachment-file-section" style="display:none; margin-top:10px;">
+                        <label style="color:var(--text-light); font-size:0.9rem;">اختر ملف (Word, Excel, PDF, PowerPoint):</label>
+                        <input type="file" id="news-attachment-file-input" class="editable-input" accept=".doc,.docx,.xls,.xlsx,.pdf,.ppt,.pptx" style="margin-bottom:8px;">
+                        <div id="news-attachment-file-preview" style="font-size:0.85rem; color:var(--text-light); margin-top:8px;"></div>
+                    </div>
+                    
+                    <button type="button" class="btn-sm" style="background:#9C27B0; color:white; margin-top:8px;" onclick="clearNewsAttachment()">✕ إزالة الملحق</button>
+                    <button type="button" class="btn-sm" style="background:#06b6d4; color:white; margin-top:8px; margin-inline-start:8px;" onclick="addCurrentNewsAttachmentToNew()">➕ أضف الملحق لقائمة الملحقات</button>
+                    <div id="new-news-attachments-list" style="margin-top:10px;"></div>
+                </div>
+                
+                <button class="btn-sm btn-add" onclick="addNews()">إضافة خبر</button>
+            </div>
+        </div>
+
+        <!-- قسم الكتب والرزم الجديد -->
+        <div id="books-packages" class="content-area">
+            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()" id="backBtn">⬅️ رجوع</button>
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <button id="booksTab" class="sec-btn active" onclick="switchBooksPackagesType('books')">📖 الكتب</button>
+                <button id="packagesTab" class="sec-btn" onclick="switchBooksPackagesType('packages')">📦 الرزم</button>
+            </div>
+            <div id="books-packages-list"></div>
+            <div class="add-new-container">
+                <h4 id="add-books-packages-title">إضافة كتاب جديد</h4>
+                <input type="text" id="new-books-packages-title" class="editable-input" placeholder="اسم الكتاب أو الرزمة" style="margin-bottom: 10px;">
+                <input type="text" id="new-books-packages-link" class="editable-input" placeholder="رابط التحميل">
+                <button class="btn-sm btn-add" onclick="addBooksPackage()">إضافة</button>
+            </div>
+        </div>
+
+        <div id="teachers" class="content-area">
+            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()" id="backBtn">⬅️ رجوع</button>
+            <div class="section-selector" id="teachers-sec-selector"></div>
+            <div id="teachers-list"></div>
+            <div class="add-new-container">
+                <h4>إضافة أستاذ للشعبة الحالية</h4>
+                <input type="text" id="new-teacher-name" class="editable-input" placeholder="الاسم الكامل" style="margin-bottom:10px;">
+                <input type="text" id="new-teacher-role" class="editable-input" placeholder="المادة / الدور" style="margin-bottom:10px;">
+                <input type="text" id="new-teacher-phone" class="editable-input" placeholder="رقم الهاتف" style="margin-bottom:10px;">
+                <button class="btn-sm btn-add" onclick="addTeacher()">إضافة أستاذ</button>
+            </div>
+        </div>
+
+        <div id="group-links" class="content-area">
+            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()" id="backBtn">⬅️ رجوع</button>
+            <div class="section-selector" id="group-sec-selector"></div>
+            <div id="group-links-list"></div>
+            <div class="add-new-container">
+                <h4>إضافة رابط مجموعة للشعبة الحالية</h4>
+                <input type="text" id="new-group-title" class="editable-input" placeholder="اسم المجموعة" style="margin-bottom:10px;">
+                <input type="text" id="new-group-url" class="editable-input" placeholder="الرابط (URL)" style="margin-bottom:10px;">
+                <button class="btn-sm btn-add" onclick="addGroupLink()">إضافة رابط</button>
+            </div>
+        </div>
+
+        <div id="important-links" class="content-area">
+            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()" id="backBtn">⬅️ رجوع</button>
+            <div id="important-links-list"></div>
+            <div class="add-new-container">
+                <h4>إضافة رابط مهم جديد</h4>
+                <input type="text" id="new-link-title" class="editable-input" placeholder="اسم الرابط / الموضوع" style="margin-bottom: 10px;">
+                <input type="text" id="new-link-url" class="editable-input" placeholder="الرابط (URL)">
+                <div style="margin-top:12px; padding:8px; background:#f7fafc; border-radius:6px;">
+                    <label style="font-weight:bold; color:var(--text-light);">ملحقات للرابط (اختياري)</label>
+                    <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+                        <button type="button" class="btn-sm" style="background:#4CAF50; color:white;" onclick="selectLinkAttachmentType('image')">📷 صورة</button>
+                        <button type="button" class="btn-sm" style="background:#2196F3; color:white;" onclick="selectLinkAttachmentType('link')">🔗 رابط</button>
+                        <button type="button" class="btn-sm" style="background:#FF9800; color:white;" onclick="selectLinkAttachmentType('file')">📎 ملف</button>
+                    </div>
+                    <div id="link-attachment-image-section" style="display:none; margin-top:10px;">
+                        <label style="color:var(--text-light); font-size:0.9rem;">اختر صورة:</label>
+                        <input type="file" id="link-attachment-image-input" class="editable-input" accept="image/*" style="margin-bottom:8px;">
+                        <div id="link-attachment-image-preview" style="max-width:150px; margin-top:8px;"></div>
+                    </div>
+                    <div id="link-attachment-link-section" style="display:none; margin-top:10px;">
+                        <label style="color:var(--text-light); font-size:0.9rem;">رابط الملحق:</label>
+                        <input type="text" id="link-attachment-link-input" class="editable-input" placeholder="https://...">
+                    </div>
+                    <div id="link-attachment-file-section" style="display:none; margin-top:10px;">
+                        <label style="color:var(--text-light); font-size:0.9rem;">اختر ملف:</label>
+                        <input type="file" id="link-attachment-file-input" class="editable-input" accept=".doc,.docx,.xls,.xlsx,.pdf,.ppt,.pptx" style="margin-bottom:8px;">
+                        <div id="link-attachment-file-preview" style="font-size:0.85rem; color:var(--text-light); margin-top:8px;"></div>
+                    </div>
+                    <div style="margin-top:8px;">
+                        <button type="button" class="btn-sm" style="background:#06b6d4; color:white;" onclick="addCurrentLinkAttachmentToNew()">➕ أضف الملحق لقائمة الملحقات</button>
+                        <button type="button" class="btn-sm" style="background:#9C27B0; color:white; margin-inline-start:8px;" onclick="clearLinkAttachment()">✕ إزالة الملحق الحالي</button>
+                    </div>
+                    <div id="new-link-attachments-list" style="margin-top:10px;"></div>
+                </div>
+                <button class="btn-sm btn-add" onclick="addImportantLink()" style="margin-top:10px;">إضافة رابط</button>
+            </div>
+        </div>
+
+
+
+        <div id="access-logs" class="content-area admin-only">
+            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()">⬅️ رجوع</button>
+            <div class="data-card">
+              <div class="section-toolbar"><div><h2 style="color:var(--primary-color);margin:0">إشعارات الدخول</h2><p style="color:var(--text-light);margin:3px 0 0">محاولات الدخول إلى لوحة الإدارة.</p></div></div>
+              <div id="access-logs-list"><div class="notice" style="padding:12px">جاري تحميل السجل...</div></div>
+            </div>
+        </div>
+
+        <div id="weekly-schedule" class="content-area admin-only">
+            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()">⬅️ رجوع</button>
+            <div class="data-card">
+              <div class="section-toolbar"><div><h2 style="color:var(--primary-color);margin:0">الجدول الأسبوعي</h2><p style="color:var(--text-light);margin:3px 0 0">قوالب ثابتة للحصص تُستخدم تلقائياً عندما لا تكون لليوم روابط مباشرة.</p></div><label class="admin-badge" style="cursor:pointer"><input id="weekly-enabled-toggle" type="checkbox" onchange="toggleWeeklySchedule(this.checked)" style="margin-left:7px"> استخدام الجدول الأسبوعي تلقائياً</label></div>
+              <div id="weekly-schedule-list" class="weekly-grid"></div>
+            </div>
+        </div>
+
+        <div id="settings" class="content-area">
+            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()" id="backBtn">⬅️ رجوع</button>
+            
+            <!-- قسم التنسيق والمظهر -->
+            <div style="background:var(--settings-bg); padding:20px; border-radius:10px; box-shadow:var(--shadow); margin-bottom:20px;">
+                <h3 style="margin-bottom:20px; color:var(--primary-color); border-bottom:2px solid var(--accent-color); padding-bottom:10px;">🎨 التنسيق والمظهر</h3>
+                
+                <!-- اختيار الخط -->
+                <div style="margin-bottom:25px;">
+                    <label style="display:block; font-weight:bold; color:var(--primary-color); margin-bottom:10px;">📝 اختر الخط:</label>
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:10px;">
+                        <button onclick="setFont('aldhabi')" id="font-aldhabi-btn" class="font-choice-btn" style="padding:14px; min-height:48px; border:2px solid #ccc; border-radius:8px; cursor:pointer; font-family:'ALDHABI', sans-serif; font-weight:bold; font-size:18px;">ALDHABI</button>
+                        <button onclick="setFont('alatypoo')" id="font-alatypoo-btn" class="font-choice-btn" style="padding:12px; min-height:44px; border:2px solid #ccc; border-radius:8px; cursor:pointer; font-family:'AlaTypoo', sans-serif; font-weight:bold; font-size:16px;">AlaTypoo</button>
+                        <button onclick="setFont('dwnoutsh')" id="font-dwnoutsh-btn" class="font-choice-btn" style="padding:12px; min-height:44px; border:2px solid #ccc; border-radius:8px; cursor:pointer; font-family:'Lemonada', sans-serif; font-weight:bold; font-size:16px;">Lemonada</button>
+                        <button onclick="setFont('kfxftout')" id="font-kfxftout-btn" class="font-choice-btn" style="padding:12px; min-height:44px; border:2px solid #ccc; border-radius:8px; cursor:pointer; font-family:'KFXFTOUT', sans-serif; font-weight:bold; font-size:16px;">KFXFTOUT</button>
+                        <button onclick="setFont('ptbldbrk')" id="font-ptbldbrk-btn" class="font-choice-btn" style="padding:12px; min-height:44px; border:2px solid #ccc; border-radius:8px; cursor:pointer; font-family:'PTBLDBRK', sans-serif; font-weight:bold; font-size:16px;">PTBLDBRK</button>
+                    </div>
+                </div>
+
+                <!-- اختيار اللون -->
+                <div style="margin-bottom:25px;">
+                    <label style="display:block; font-weight:bold; color:var(--primary-color); margin-bottom:10px;">🎯 اختر مخطط الألوان:</label>
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:12px;">
+                        <!-- درجات الأزرق -->
+                        <button onclick="setColorScheme('blue')" id="scheme-blue-btn" class="color-scheme-btn" style="padding:15px; border:3px solid #ccc; border-radius:8px; cursor:pointer; background:linear-gradient(135deg, #e0f2fe 0%, #0ea5e9 100%); font-weight:bold; color:#0c4a6e;">
+                             درجات الأزرق
+                        </button>
+                        <!-- درجات الأخضر -->
+                        <button onclick="setColorScheme('green')" id="scheme-green-btn" class="color-scheme-btn" style="padding:15px; border:3px solid #ccc; border-radius:8px; cursor:pointer; background:linear-gradient(135deg, #dcfce7 0%, #22c55e 100%); font-weight:bold; color:#166534;">
+                             درجات الأخضر
+                        </button>
+                        <!-- درجات البرتقالي (الحالي) -->
+                        <button onclick="setColorScheme('orange')" id="scheme-orange-btn" class="color-scheme-btn" style="padding:15px; border:3px solid #ccc; border-radius:8px; cursor:pointer; background:linear-gradient(135deg, #fed7aa 0%, #fb923c 100%); font-weight:bold; color:#92400e;">
+                             درجات البرتقالي
+                        </button>
+                        <!-- درجات الزهري الفاتح -->
+                        <button onclick="setColorScheme('pink')" id="scheme-pink-btn" class="color-scheme-btn" style="padding:15px; border:3px solid #ccc; border-radius:8px; cursor:pointer; background:linear-gradient(135deg, #fbcfe8 0%, #ec4899 100%); font-weight:bold; color:#831843;">
+                             درجات الزهري
+                        </button>
+                        <!-- الأسود مع الذهبي (فخم) -->
+                        <button onclick="setColorScheme('luxury')" id="scheme-luxury-btn" class="color-scheme-btn" style="padding:15px; border:3px solid #ccc; border-radius:8px; cursor:pointer; background:linear-gradient(135deg, #1f2937 0%, #fbbf24 100%); font-weight:bold; color:#fff;">
+                            درجات الأسود
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ملاحظة الإعدادات أُزيلت بناءً على طلب المستخدم -->
+            </div>
+        </div>
+
+        <div id="about-team" class="content-area">
+            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()" id="backBtn">⬅️ رجوع</button>
+            <div id="team-list"></div>
+            <div class="add-new-container">
+                <h4>إضافة عضو فريق تطوير جديد</h4>
+                <input type="text" id="new-team-name" class="editable-input" placeholder="الاسم الكامل" style="margin-bottom: 10px;">
+                <input type="text" id="new-team-role" class="editable-input" placeholder="الدور / التخصص" style="margin-bottom: 10px;">
+                <textarea id="new-team-bio" class="editable-textarea" placeholder="وصف العضو أو السيرة الذاتية..." style="min-height: 60px; margin-bottom: 10px;"></textarea>
+                <input type="text" id="new-team-whatsapp" class="editable-input" placeholder="رقم الواتساب">
+                <button class="btn-sm btn-add" onclick="addTeamMember()">إضافة عضو</button>
+            </div>
+        </div>
+
+    </main>
+
+    
+
+    
+
+    
+
+    <!-- Install prompt UI: shows on every visit unless app is installed -->
+    
+
+    <div id="install-prompt" class="hidden" role="dialog" aria-live="polite">
+        <div class="msg">
+            <div style="font-weight:600;">تثبيت التطبيق؟</div>
+            <div style="font-size:0.88rem;color:#6b7280;">احصل على وصول سريع للتطبيق من جهازك.</div>
+        </div>
+        <div class="actions">
+            <button id="install-btn">تثبيت</button>
+            <button id="hide-btn" class="btn-secondary">إخفاء</button>
+        </div>
+    </div>
+
+    
+
+</body>
+
+</html>
