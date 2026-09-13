@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#eef4f7">
-<meta name="description" content="بوابة طلابية لعرض الحصص والواجبات والتسجيلات والاختبارات والتقدم والملفات والروابط.">
+<meta name="description" content="منصة سِراج 2010 للحصص والواجبات والتسجيلات والاختبارات والملفات والروابط.">
 <meta property="og:locale" content="ar">
 <meta property="og:type" content="website">
-<meta property="og:title" content="بوابة الطلاب">
-<meta property="og:description" content="بوابة طلابية بسيطة وواضحة للطلاب.">
+<meta property="og:title" content="سِراج 2010">
+<meta property="og:description" content="منارة تعليمية هادئة وواضحة لجيل 2010.">
 <link rel="icon" href="لوجو.png">
 <link rel="apple-touch-icon" href="لوجو.png">
 <link rel="stylesheet" href="assets/css/style.css">
@@ -20,7 +20,7 @@
 </head> -->
     
     
-    <title>❄ بوابة الطلاب || 𝟐𝟎𝟏𝟎 ❄</title>
+    <title>❄ سِراج 2010 || 𝟐𝟎𝟏𝟎 ❄</title>
     
 </head>
 <body>
@@ -29,7 +29,7 @@
     <div id="splash-overlay" class="splash-overlay">
         <div class="splash-content">
             <img src="لوجو.png" id="splash-logo" class="splash-logo" alt="شعار">
-            <h1 id="splash-text">أهلاً بكم في بوابتكم التعليمية</h1>
+            <h1 id="splash-text">أهلاً بكم في سِراج 2010</h1>
         </div>
         <div id="splash-circle" class="splash-circle" aria-hidden="true"></div>
     </div>
@@ -37,7 +37,7 @@
 
     <nav class="sidebar" id="sidebar">
         <div class="logo">
-            <img src="لوجو.png" class="site-logo" alt="شعار الموقع" style="width:28px; height:28px; object-fit:cover; margin-inline-end:8px; vertical-align:middle; border-radius:4px;">بوابة الطلاب 
+            <img src="لوجو.png" class="site-logo" alt="شعار الموقع" style="width:28px; height:28px; object-fit:cover; margin-inline-end:8px; vertical-align:middle; border-radius:4px;">سِراج 2010 
         </div>
         <ul class="nav-links">
             <li class="nav-item active" onclick="showSection('home')">
@@ -115,7 +115,7 @@
             <img src="لوجو.png" alt="icon" style="width:44px; height:44px; border-radius:8px; object-fit:cover;">
             <div style="text-align:right;">
                 <div style="font-weight:700;">تثبيت التطبيق</div>
-                <div style="color:var(--text-light); font-size:0.95rem;">يمكنك تثبيت منصة  " بوابة الطلاب || 𝟐𝟎𝟏𝟎 " كتطبيق</div>
+                <div style="color:var(--text-light); font-size:0.95rem;">يمكنك تثبيت منصة  " سِراج 2010 || 𝟐𝟎𝟏𝟎 " كتطبيق</div>
             </div>
         </div>
         <div style="margin-inline-start:auto; display:flex; gap:8px;">
@@ -125,7 +125,7 @@
     </div>
 
     <main class="main-content">
-        <div class="header"><div class="admin-topbar"><span class="admin-badge">وضع المشاهدة</span><a class="btn-link" href="admin/">لوحة الإدارة</a></div>
+        <div class="header">
             <div class="header-inner"><div class="page-title">
                 <h1 id="page-heading">الرئيسية</h1>
                 <p id="current-date">جاري تحميل التاريخ...</p>
@@ -540,52 +540,59 @@
         </div>
 
         <div id="settings" class="content-area">
-            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()" id="backBtn">⬅️ رجوع</button>
-            
-            <!-- قسم التنسيق والمظهر -->
-            <div style="background:var(--settings-bg); padding:20px; border-radius:10px; box-shadow:var(--shadow); margin-bottom:20px;">
-                <h3 style="margin-bottom:20px; color:var(--primary-color); border-bottom:2px solid var(--accent-color); padding-bottom:10px;">🎨 التنسيق والمظهر</h3>
-                
-                <!-- اختيار الخط -->
-                <div style="margin-bottom:25px;">
-                    <label style="display:block; font-weight:bold; color:var(--primary-color); margin-bottom:10px;">📝 اختر الخط:</label>
-                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:10px;">
-                        <button onclick="setFont('aldhabi')" id="font-aldhabi-btn" class="font-choice-btn" style="padding:14px; min-height:48px; border:2px solid #ccc; border-radius:8px; cursor:pointer; font-family:'ALDHABI', sans-serif; font-weight:bold; font-size:18px;">ALDHABI</button>
-                        <button onclick="setFont('alatypoo')" id="font-alatypoo-btn" class="font-choice-btn" style="padding:12px; min-height:44px; border:2px solid #ccc; border-radius:8px; cursor:pointer; font-family:'AlaTypoo', sans-serif; font-weight:bold; font-size:16px;">AlaTypoo</button>
-                        <button onclick="setFont('dwnoutsh')" id="font-dwnoutsh-btn" class="font-choice-btn" style="padding:12px; min-height:44px; border:2px solid #ccc; border-radius:8px; cursor:pointer; font-family:'Lemonada', sans-serif; font-weight:bold; font-size:16px;">Lemonada</button>
-                        <button onclick="setFont('kfxftout')" id="font-kfxftout-btn" class="font-choice-btn" style="padding:12px; min-height:44px; border:2px solid #ccc; border-radius:8px; cursor:pointer; font-family:'KFXFTOUT', sans-serif; font-weight:bold; font-size:16px;">KFXFTOUT</button>
-                        <button onclick="setFont('ptbldbrk')" id="font-ptbldbrk-btn" class="font-choice-btn" style="padding:12px; min-height:44px; border:2px solid #ccc; border-radius:8px; cursor:pointer; font-family:'PTBLDBRK', sans-serif; font-weight:bold; font-size:16px;">PTBLDBRK</button>
-                    </div>
+            <div class="settings-hero">
+                <div>
+                    <span class="eyebrow">تخصيص التجربة</span>
+                    <h2>الإعدادات</h2>
+                    <p>خلّي سِراج 2010 على ذوقك: خط أوضح، حجم مناسب، لون هادئ، وكثافة مريحة للمحتوى.</p>
                 </div>
+                <button class="btn-link settings-reset" onclick="resetAppearanceSettings()">إرجاع الوضع العادي</button>
+            </div>
 
-                <!-- اختيار اللون -->
-                <div style="margin-bottom:25px;">
-                    <label style="display:block; font-weight:bold; color:var(--primary-color); margin-bottom:10px;">🎯 اختر مخطط الألوان:</label>
-                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:12px;">
-                        <!-- درجات الأزرق -->
-                        <button onclick="setColorScheme('blue')" id="scheme-blue-btn" class="color-scheme-btn" style="padding:15px; border:3px solid #ccc; border-radius:8px; cursor:pointer; background:linear-gradient(135deg, #e0f2fe 0%, #0ea5e9 100%); font-weight:bold; color:#0c4a6e;">
-                             درجات الأزرق
-                        </button>
-                        <!-- درجات الأخضر -->
-                        <button onclick="setColorScheme('green')" id="scheme-green-btn" class="color-scheme-btn" style="padding:15px; border:3px solid #ccc; border-radius:8px; cursor:pointer; background:linear-gradient(135deg, #dcfce7 0%, #22c55e 100%); font-weight:bold; color:#166534;">
-                             درجات الأخضر
-                        </button>
-                        <!-- درجات البرتقالي (الحالي) -->
-                        <button onclick="setColorScheme('orange')" id="scheme-orange-btn" class="color-scheme-btn" style="padding:15px; border:3px solid #ccc; border-radius:8px; cursor:pointer; background:linear-gradient(135deg, #fed7aa 0%, #fb923c 100%); font-weight:bold; color:#92400e;">
-                             درجات البرتقالي
-                        </button>
-                        <!-- درجات الزهري الفاتح -->
-                        <button onclick="setColorScheme('pink')" id="scheme-pink-btn" class="color-scheme-btn" style="padding:15px; border:3px solid #ccc; border-radius:8px; cursor:pointer; background:linear-gradient(135deg, #fbcfe8 0%, #ec4899 100%); font-weight:bold; color:#831843;">
-                             درجات الزهري
-                        </button>
-                        <!-- الأسود مع الذهبي (فخم) -->
-                        <button onclick="setColorScheme('luxury')" id="scheme-luxury-btn" class="color-scheme-btn" style="padding:15px; border:3px solid #ccc; border-radius:8px; cursor:pointer; background:linear-gradient(135deg, #1f2937 0%, #fbbf24 100%); font-weight:bold; color:#fff;">
-                            درجات الأسود
-                        </button>
+            <div class="settings-layout">
+                <section class="settings-panel">
+                    <div class="settings-panel-head"><div><h3>الخط والقراءة</h3><p>اختَر ما يجعل القراءة أريح لك.</p></div><span>Aa</span></div>
+                    <div class="font-grid">
+                        <button onclick="setFont('default')" id="font-default-btn" class="font-choice-btn font-preview-default">الخط العادي<small>واضح ومتوازن</small></button>
+                        <button onclick="setFont('alatypoo')" id="font-alatypoo-btn" class="font-choice-btn font-preview-ala">عربي هادئ<small>AlaTypoo</small></button>
+                        <button onclick="setFont('dwnoutsh')" id="font-dwnoutsh-btn" class="font-choice-btn font-preview-dwn">خط ناعم<small>DWNOUTSH</small></button>
+                        <button onclick="setFont('kfxftout')" id="font-kfxftout-btn" class="font-choice-btn font-preview-kfx">خط رسمي<small>KFXFTOUT</small></button>
+                        <button onclick="setFont('ptbldbrk')" id="font-ptbldbrk-btn" class="font-choice-btn font-preview-pt">خط كلاسيكي<small>PTBLDBRK</small></button>
+                        <button onclick="setFont('aldhabi')" id="font-aldhabi-btn" class="font-choice-btn font-preview-aldhabi">خط عربي زخرفي<small>ALDHABI</small></button>
                     </div>
-                </div>
+                    <div class="range-row">
+                        <div class="range-label"><strong>حجم الخط</strong><span id="font-size-value">100%</span></div>
+                        <input id="font-size-range" type="range" min="85" max="125" step="5" value="100" oninput="setFontScale(this.value)">
+                    </div>
+                    <div class="range-row">
+                        <div class="range-label"><strong>تباعد السطور</strong><span id="line-height-value">مريح</span></div>
+                        <input id="line-height-range" type="range" min="15" max="21" step="1" value="18" oninput="setLineHeight(this.value)">
+                    </div>
+                </section>
 
-                <!-- ملاحظة الإعدادات أُزيلت بناءً على طلب المستخدم -->
+                <section class="settings-panel">
+                    <div class="settings-panel-head"><div><h3>المظهر</h3><p>اختر الجو العام للموقع بدون إجهاد للعين.</p></div><span>◐</span></div>
+                    <div class="theme-grid">
+                        <button onclick="setColorScheme('ocean')" id="scheme-ocean-btn" class="theme-option theme-ocean"><b>نسمة البحر</b><small>أزرق هادئ</small></button>
+                        <button onclick="setColorScheme('sage')" id="scheme-sage-btn" class="theme-option theme-sage"><b>ورق الزيتون</b><small>أخضر مريح</small></button>
+                        <button onclick="setColorScheme('sand')" id="scheme-sand-btn" class="theme-option theme-sand"><b>دفء الورق</b><small>بيج دافئ</small></button>
+                        <button onclick="setColorScheme('rose')" id="scheme-rose-btn" class="theme-option theme-rose"><b>ورد هادئ</b><small>زهري ناعم</small></button>
+                    </div>
+                    <div class="appearance-switches">
+                        <button class="switch-card" onclick="toggleHighContrast()"><span><b>وضوح أعلى</b><small>يزيد وضوح النص والحدود</small></span><i id="contrast-state">○</i></button>
+                        <button class="switch-card" onclick="toggleReducedMotion()"><span><b>حركة أقل</b><small>يخفف الحركات والانتقالات</small></span><i id="motion-state">○</i></button>
+                        <button class="switch-card" onclick="toggleCompactMode()"><span><b>وضع مدمج</b><small>يقلل المسافات بين البطاقات</small></span><i id="compact-state">○</i></button>
+                    </div>
+                </section>
+
+                <section class="settings-panel settings-preview-panel">
+                    <div class="settings-panel-head"><div><h3>المعاينة</h3><p>هيك راح تشوف المحتوى بعد الاختيار.</p></div><span>✦</span></div>
+                    <div class="settings-preview-card">
+                        <div class="preview-icon">سِ</div>
+                        <div><strong>سِراج 2010</strong><p>واجهة هادئة، واضحة، ومصممة للقراءة السريعة.</p></div>
+                    </div>
+                    <div class="settings-tips"><div>✓ الإعدادات تُحفظ على جهازك تلقائياً</div><div>✓ ترجع للوضع العادي بزر واحد</div><div>✓ يمكنك تغييرها في أي وقت</div></div>
+                </section>
             </div>
         </div>
 

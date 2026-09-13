@@ -27,10 +27,10 @@
         const u=result.user;
         let allowed=false;
         try{ await firebase.database().ref('adminOnly/ping').once('value'); allowed=true; }catch(e){ allowed=false; }
-        try{await firebase.database().ref('accessLogs').push({email:u.email||'',displayName:u.displayName||'',timestamp:firebase.database.ServerValue.TIMESTAMP,allowed:allowed});}catch(e){}
+        try{await firebase.database().ref('accessLogs').push({uid:u.uid||'',email:u.email||'',displayName:u.displayName||'',timestamp:firebase.database.ServerValue.TIMESTAMP,allowed:allowed});}catch(e){}
         if(!allowed){msg.textContent='هذا الحساب غير مخوّل للوصول إلى لوحة الإدارة.';await firebase.auth().signOut();btn.disabled=false;return;}
         window.AUTH_USER=u;window.IS_ADMIN=true;document.body.classList.remove('view-mode');document.body.classList.add('edit-mode');gate.remove();if(window.render)window.render();if(window.showSection)window.showSection('home');renderLogs();
-      }catch(e){msg.textContent='تعذر تسجيل الدخول. حاول مرة أخرى.';btn.disabled=false;}
+      }catch(e){msg.textContent=(e&&e.code==='auth/popup-blocked')?'المتصفح منع نافذة Google. اسمح بالنوافذ المنبثقة ثم أعد المحاولة.':'تعذر تسجيل الدخول. تأكد من إعداد Google وAuthorized Domains في Firebase.';btn.disabled=false;}
     };
     firebase.auth().onAuthStateChanged(function(u){
       if(!u)return;

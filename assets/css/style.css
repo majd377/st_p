@@ -712,3 +712,171 @@ body.edit-mode .editable-value{display:none!important}.admin-only{display:none!i
 
 .admin-signout{margin-inline-start:auto}
 body.view-mode .admin-only{display:none!important}
+
+
+/* ============================================================
+   2026 HUMAN LIGHT UI — calm, readable, portal-style refresh
+   ============================================================ */
+:root{
+  --primary-color:#2c6b63;
+  --secondary-color:#6d8d83;
+  --accent-color:#eabf6a;
+  --bg-color:#f7faf8;
+  --card-bg:#ffffff;
+  --text-color:#2e3b38;
+  --text-light:#70807b;
+  --success:#2f8b6f;
+  --danger:#b85a5a;
+  --radius:18px;
+  --shadow:0 8px 24px rgba(34,66,59,.08);
+  --font-family:"Tahoma","Segoe UI",Arial,sans-serif;
+  --base-font-size:16px;
+}
+
+html{background:var(--bg-color)}
+body{
+  background:
+    radial-gradient(circle at 10% 0%,rgba(234,191,106,.12),transparent 28%),
+    linear-gradient(180deg,#fbfcfb 0%,#f4f8f6 100%);
+  color:var(--text-color);
+  font-family:var(--font-family);
+  line-height:1.75;
+  letter-spacing:0;
+}
+
+/* Right-side navigation: bright, soft, human-looking */
+.sidebar{
+  width:252px;
+  background:rgba(255,255,255,.96);
+  border-left:1px solid #e5ece8;
+  box-shadow:-8px 0 28px rgba(41,68,61,.05);
+  padding:18px 14px 26px;
+  backdrop-filter:blur(10px);
+}
+.logo{
+  font-size:1.08rem;
+  color:#315c55;
+  padding:10px 8px 16px;
+  margin-bottom:10px;
+  border-bottom:1px solid #edf1ef;
+  font-weight:800;
+}
+.logo img.site-logo{
+  width:38px!important;height:38px!important;border-radius:11px!important;
+}
+.nav-links{gap:5px}
+.nav-item{
+  min-height:44px;
+  padding:10px 12px;
+  border-radius:12px;
+  color:#5d6d68;
+  font-weight:700;
+  font-size:.96rem;
+  transition:background-color .18s ease,color .18s ease,transform .18s ease;
+}
+.nav-item:hover{background:#f0f6f3;color:#2d675e;transform:translateX(-1px)}
+.nav-item.active{background:#eaf3ef;color:#28645b;box-shadow:inset -3px 0 0 #d3a963}
+.nav-item svg{width:19px;height:19px;stroke-width:1.8}
+
+.main-content{margin-right:252px;padding:30px 34px 56px;min-width:0}
+.header{
+  position:relative;
+  border:0;
+  padding:2px 0 20px;
+  margin-bottom:22px;
+}
+.header:after{
+  content:"";position:absolute;bottom:0;right:0;left:0;height:1px;background:#e8eeeb;
+}
+.header-inner{display:flex;gap:8px}
+.page-title h1{font-size:2rem;line-height:1.25;color:#2b5f56;font-weight:800;letter-spacing:-.02em}
+.page-title p{font-size:.96rem;color:#81908c;margin-top:6px}
+
+.content-area{max-width:1160px;margin-inline:auto}
+.dashboard-grid{grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px}
+.feature-card{
+  position:relative;
+  background:rgba(255,255,255,.94);
+  border:1px solid #e5ece8;
+  border-radius:20px;
+  min-height:182px;
+  padding:22px 21px;
+  box-shadow:0 7px 20px rgba(35,72,63,.055);
+  transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;
+}
+.feature-card:before{
+  content:"";position:absolute;top:0;right:0;left:0;height:4px;border-radius:20px 20px 0 0;
+  background:linear-gradient(90deg,#d5ab59,#9fc1b8);
+  opacity:.75;
+}
+.feature-card:hover{transform:translateY(-3px);box-shadow:0 14px 30px rgba(35,72,63,.10);border-color:#d4e3dd}
+.feature-icon{
+  width:50px;height:50px;border-radius:15px;background:#eff6f3;
+  display:grid;place-items:center;font-size:1.5rem;margin-bottom:15px;
+  box-shadow:inset 0 0 0 1px #e2eeea;
+}
+.feature-card h3{color:#315f57;font-size:1.08rem;margin-bottom:6px;font-weight:800}
+.feature-card p{color:#768681;font-size:.92rem;line-height:1.7}
+
+.data-card,.add-new-container,.modal-box{
+  background:#fff;
+  border:1px solid #e3ebe7;
+  border-radius:18px;
+  box-shadow:var(--shadow);
+}
+.data-card{padding:18px;margin-bottom:14px}
+.data-header h3,.lesson-name{color:#2f6259}
+.btn-sm,.btn-link,.btn-save,.btn-delete,.btn-add,.btn-login,.btn-cancel{
+  border-radius:11px;font-weight:800;padding:9px 13px;font-family:inherit;
+}
+.btn-link{background:#eff6f3;color:#2d665c}
+.btn-save,.btn-add,.btn-login{background:#2f6d63;color:#fff;box-shadow:0 4px 12px rgba(47,109,99,.18)}
+.btn-delete{background:#fff5f5;color:#a34c4c;border:1px solid #efd6d6}
+.btn-cancel{background:#f4f6f5;color:#596a65}
+
+.editable-input,.editable-textarea,.modal-input{border:1px solid #dce6e2;border-radius:11px;background:#fff;padding:11px 12px;color:#2f3d39;font:inherit;width:100%}
+.editable-input:focus,.editable-textarea:focus,.modal-input:focus{border-color:#8db5aa;box-shadow:0 0 0 3px rgba(88,145,132,.12);outline:none}
+.section-toolbar{gap:9px;margin-bottom:16px}
+.section-toolbar select{border:1px solid #dce6e2;border-radius:11px;padding:9px 12px;background:#fff;color:#3c4c47;font:inherit}
+.notice{background:#f3f8f5!important;border:1px solid #dce9e4!important;color:#667771!important;border-radius:14px!important}
+
+/* Admin stays visually distinct, but no edit toggle is exposed */
+.admin-topbar{gap:9px;align-items:center}
+.admin-badge{background:#eef6f2;color:#2d695c;border:1px solid #d4e7df;padding:7px 10px;border-radius:999px;font-size:.84rem;font-weight:800}
+.auth-screen{
+  min-height:100vh;
+  background:radial-gradient(circle at 20% 10%,rgba(234,191,106,.17),transparent 34%),#f5faf7;
+}
+.auth-card{width:min(460px,100%);background:#fff;border:1px solid #e0ebe6;border-radius:24px;box-shadow:0 24px 60px rgba(38,74,65,.12);padding:32px}
+.auth-card h1,.auth-card h2{color:#2e6158;font-weight:800}
+
+/* Hide all admin-only controls on the public site. The only way to enter admin is /admin/. */
+body.view-mode .admin-only{display:none!important}
+body.view-mode .admin-topbar{display:none!important}
+body.view-mode .admin-signout{display:none!important}
+
+/* Mobile: compact top area + horizontally scrollable nav, no giant dark panel */
+@media (max-width:900px){
+  body{display:block}
+  .sidebar{width:100%;height:auto;position:static;padding:10px 10px 8px;border-left:0;border-bottom:1px solid #e5ece8;box-shadow:0 6px 20px rgba(41,68,61,.05)}
+  .logo{padding:6px 8px 10px;margin-bottom:7px}
+  .nav-links{display:flex;flex-direction:row;overflow-x:auto;gap:6px;padding:2px 0 5px;scrollbar-width:none}
+  .nav-links::-webkit-scrollbar{display:none}
+  .nav-item{flex:0 0 auto;white-space:nowrap;min-height:40px;padding:8px 11px;font-size:.88rem}
+  .main-content{margin-right:0;padding:20px 14px 44px}
+  .header{margin-bottom:18px;padding-bottom:14px}
+  .page-title h1{font-size:1.65rem}
+}
+@media (max-width:640px){
+  .dashboard-grid{grid-template-columns:1fr 1fr;gap:12px}
+  .feature-card{min-height:165px;padding:18px 16px;border-radius:17px}
+  .feature-icon{width:44px;height:44px;border-radius:13px;font-size:1.35rem}
+  .feature-card h3{font-size:1rem}
+  .feature-card p{font-size:.86rem}
+}
+@media (max-width:430px){
+  .dashboard-grid{grid-template-columns:1fr}
+  .page-title h1{font-size:1.45rem}
+}
+
+/* Make the viewer settings useful without bringing back a dark/unfriendly default. */

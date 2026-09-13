@@ -1,19 +1,20 @@
 {
   "rules": {
-    ".read": true,
+    ".read": false,
     ".write": false,
     "appData": {
       ".read": true,
-      ".write": "auth != null && auth.token.email == 'mjdshbyr449@gmail.com'"
+      ".write": "auth != null && auth.token.email_verified == true && auth.token.email == 'mjdshbyr449@gmail.com'"
     },
     "adminOnly": {
-      ".read": "auth != null && auth.token.email == 'mjdshbyr449@gmail.com'",
-      ".write": false,
-      "ping": { ".read": "auth != null && auth.token.email == 'mjdshbyr449@gmail.com'" }
+      ".read": "auth != null && auth.token.email_verified == true && auth.token.email == 'mjdshbyr449@gmail.com'",
+      ".write": false
     },
     "accessLogs": {
-      ".read": "auth != null && auth.token.email == 'mjdshbyr449@gmail.com'",
-      ".write": "auth != null"
+      ".read": "auth != null && auth.token.email_verified == true && auth.token.email == 'mjdshbyr449@gmail.com'",
+      "$logId": {
+        ".write": "auth != null && auth.token.email_verified == true && auth.token.firebase.sign_in_provider == 'google.com' && newData.hasChildren(['timestamp','allowed','uid','email']) && newData.child('timestamp').isNumber() && newData.child('allowed').isBoolean() && newData.child('uid').val() == auth.uid && newData.child('email').val() == auth.token.email"
+      }
     }
   }
 }

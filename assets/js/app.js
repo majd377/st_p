@@ -232,7 +232,12 @@
         // تخزين الإعدادات محليًا فقط (localStorage)
         const DEFAULT_SETTINGS = {
             font: 'default',
-            colorScheme: 'orange'
+            colorScheme: 'ocean',
+            fontScale: 100,
+            lineHeight: 18,
+            highContrast: false,
+            reducedMotion: false,
+            compactMode: false
         };
 
         // تحميل الإعدادات من localStorage
@@ -248,9 +253,16 @@
         // الحصول على الإعدادات الحالية (قبل استدعاء applyStoredSettings)
         let userSettings = loadUserSettings();
 
+// Never reintroduce the old charcoal/gold appearance as a stored viewer default.
+if (userSettings && userSettings.colorScheme === 'luxury') {
+    // Preserve the user's selected preset name, but the preset itself is now light and readable.
+}
+
+
         // تطبيق الخط
         function setFont(fontName) {
             const fontMap = {
+                'default': '"Segoe UI", Tahoma, Arial, sans-serif',
                 'aldhabi': "'ALDHABI', sans-serif",
                 'alatypoo': "'AlaTypoo', sans-serif",
                 'dwnoutsh': "'Lemonada', sans-serif",
@@ -281,56 +293,15 @@
         // تطبيق مخطط الألوان
         function setColorScheme(schemeName) {
             const colorSchemes = {
-                'blue': {
-                    primary: '#0c4a6e',
-                    secondary: '#0ea5e9',
-                    accent: '#06b6d4',
-                    bg: '#f0f9ff',
-                    card: '#e0f2fe',
-                    text: '#0c4a6e',
-                    textLight: '#475569',
-                    settingsBg: '#ffffff'
-                },
-                'green': {
-                    primary: '#166534',
-                    secondary: '#22c55e',
-                    accent: '#16a34a',
-                    bg: '#f0fdf4',
-                    card: '#dcfce7',
-                    text: '#166534',
-                    textLight: '#4b5563',
-                    settingsBg: '#ffffff'
-                },
-                'orange': {
-                    primary: '#000000',
-                    secondary: '#ceb132',
-                    accent: '#fff3c2',
-                    bg: '#fff9ef',
-                    card: '#ffe8aa',
-                    text: '#000000',
-                    textLight: '#6b7280',
-                    settingsBg: '#ffffff'
-                },
-                'pink': {
-                    primary: '#831843',
-                    secondary: '#ec4899',
-                    accent: '#f472b6',
-                    bg: '#fdf2f8',
-                    card: '#fbcfe8',
-                    text: '#831843',
-                    textLight: '#6b7280',
-                    settingsBg: '#ffffff'
-                },
-                'luxury': {
-                    primary: '#f5ddb0',
-                    secondary: '#f5ddb0',
-                    accent: '#f5ddb0',
-                    bg: '#333333',
-                    card: '#444444',
-                    text: '#000000',
-                    textLight: '#000000',
-                    settingsBg: '#555555'
-                }
+                'ocean': {primary:'#2f6473',secondary:'#5f8792',accent:'#e2b96f',bg:'#f4f8f9',card:'#ffffff',text:'#26383f',textLight:'#6d7f86'},
+                'sage': {primary:'#477263',secondary:'#759889',accent:'#cba965',bg:'#f5f8f5',card:'#ffffff',text:'#2e3c38',textLight:'#6e7d76'},
+                'sand': {primary:'#765f3d',secondary:'#a18459',accent:'#d9b870',bg:'#faf7f1',card:'#ffffff',text:'#413a31',textLight:'#7c7469'},
+                'rose': {primary:'#805968',secondary:'#a77a88',accent:'#d9b2a2',bg:'#fbf6f8',card:'#ffffff',text:'#44383c',textLight:'#7d6d72'},
+                'blue': {primary:'#2f6473',secondary:'#5f8792',accent:'#e2b96f',bg:'#f4f8f9',card:'#ffffff',text:'#26383f',textLight:'#6d7f86'},
+                'green': {primary:'#477263',secondary:'#759889',accent:'#cba965',bg:'#f5f8f5',card:'#ffffff',text:'#2e3c38',textLight:'#6e7d76'},
+                'orange': {primary:'#765f3d',secondary:'#a18459',accent:'#d9b870',bg:'#faf7f1',card:'#ffffff',text:'#413a31',textLight:'#7c7469'},
+                'pink': {primary:'#805968',secondary:'#a77a88',accent:'#d9b2a2',bg:'#fbf6f8',card:'#ffffff',text:'#44383c',textLight:'#7d6d72'},
+                'luxury': {primary:'#2f6473',secondary:'#5f8792',accent:'#e2b96f',bg:'#f4f8f9',card:'#ffffff',text:'#26383f',textLight:'#6d7f86'}
             };
 
             const scheme = colorSchemes[schemeName];
@@ -354,7 +325,7 @@
 
         // تحديث أزرار الخط (تسليط الضوء على المختار)
         function updateFontButtons() {
-            const fontButtons = ['font-aldhabi-btn', 'font-alatypoo-btn', 'font-dwnoutsh-btn', 'font-kfxftout-btn', 'font-ptbldbrk-btn'];
+            const fontButtons = ['font-default-btn','font-aldhabi-btn', 'font-alatypoo-btn', 'font-dwnoutsh-btn', 'font-kfxftout-btn', 'font-ptbldbrk-btn'];
             fontButtons.forEach(id => {
                 const btn = document.getElementById(id);
                 if(btn) {
@@ -373,7 +344,7 @@
 
         // تحديث أزرار مخطط الألوان
         function updateColorSchemeButtons() {
-            const schemeButtons = ['scheme-blue-btn', 'scheme-green-btn', 'scheme-orange-btn', 'scheme-pink-btn', 'scheme-luxury-btn'];
+            const schemeButtons = ['scheme-ocean-btn','scheme-sage-btn','scheme-sand-btn','scheme-rose-btn','scheme-blue-btn', 'scheme-green-btn', 'scheme-orange-btn', 'scheme-pink-btn', 'scheme-luxury-btn'];
             const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent-color').trim() || '#f59e0b';
             schemeButtons.forEach(id => {
                 const btn = document.getElementById(id);
@@ -391,15 +362,49 @@
             });
         }
 
+        function setFontScale(value){
+            const n=Math.max(85,Math.min(125,Number(value)||100));
+            document.documentElement.style.setProperty('--font-scale', n/100);
+            userSettings.fontScale=n; saveUserSettings(userSettings);
+            const el=document.getElementById('font-size-value'); if(el) el.textContent=n+'%';
+        }
+        function setLineHeight(value){
+            const n=Math.max(15,Math.min(21,Number(value)||18));
+            document.documentElement.style.setProperty('--line-height-scale', n/10);
+            userSettings.lineHeight=n; saveUserSettings(userSettings);
+            const el=document.getElementById('line-height-value'); if(el) el.textContent=(n/10).toFixed(1)+'×';
+        }
+        function toggleHighContrast(){
+            userSettings.highContrast=!userSettings.highContrast;
+            document.body.classList.toggle('high-contrast',!!userSettings.highContrast); saveUserSettings(userSettings); updateAppearanceStates();
+        }
+        function toggleReducedMotion(){
+            userSettings.reducedMotion=!userSettings.reducedMotion;
+            document.body.classList.toggle('reduced-motion',!!userSettings.reducedMotion); saveUserSettings(userSettings); updateAppearanceStates();
+        }
+        function toggleCompactMode(){
+            userSettings.compactMode=!userSettings.compactMode;
+            document.body.classList.toggle('compact-mode',!!userSettings.compactMode); saveUserSettings(userSettings); updateAppearanceStates();
+        }
+        function updateAppearanceStates(){
+            [['contrast-state',userSettings.highContrast],['motion-state',userSettings.reducedMotion],['compact-state',userSettings.compactMode]].forEach(([id,on])=>{const e=document.getElementById(id);if(e)e.textContent=on?'●':'○';});
+        }
+        function resetAppearanceSettings(){
+            userSettings={...DEFAULT_SETTINGS}; saveUserSettings(userSettings);
+            setFont('default'); setColorScheme('ocean'); setFontScale(100); setLineHeight(18);
+            document.body.classList.remove('high-contrast','reduced-motion','compact-mode'); updateAppearanceStates(); updateFontButtons(); updateColorSchemeButtons();
+        }
+
         // تطبيق الإعدادات المحفوظة (الخط و الألوان)
         function applyStoredSettings() {
             if(userSettings.font) setFont(userSettings.font);
             if(userSettings.colorScheme) setColorScheme(userSettings.colorScheme);
-            // تحديث الأزرار بعد قليل من التحميل
-            setTimeout(() => {
-                updateFontButtons();
-                updateColorSchemeButtons();
-            }, 100);
+            setFontScale(userSettings.fontScale || 100);
+            setLineHeight(userSettings.lineHeight || 18);
+            document.body.classList.toggle('high-contrast',!!userSettings.highContrast);
+            document.body.classList.toggle('reduced-motion',!!userSettings.reducedMotion);
+            document.body.classList.toggle('compact-mode',!!userSettings.compactMode);
+            setTimeout(() => { updateFontButtons(); updateColorSchemeButtons(); updateAppearanceStates(); }, 100);
         }
         
         applyStoredSettings();
