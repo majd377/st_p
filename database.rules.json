@@ -6,18 +6,12 @@
       ".read": true,
       ".write": "auth != null && auth.token.email_verified == true && (auth.token.email == 'mjdshbyr449@gmail.com' || root.child('adminUsers').child(auth.uid).exists())"
     },
-    "adminOnly": {
-      ".read": "auth != null && auth.token.email_verified == true && (auth.token.email == 'mjdshbyr449@gmail.com' || root.child('adminUsers').child(auth.uid).exists())",
-      ".write": false
-    },
-    "ownerOnly": {
-      ".read": "auth != null && auth.token.email_verified == true && auth.token.email == 'mjdshbyr449@gmail.com'",
-      ".write": false
-    },
     "adminUsers": {
       ".read": "auth != null && auth.token.email_verified == true && auth.token.email == 'mjdshbyr449@gmail.com'",
       ".write": "auth != null && auth.token.email_verified == true && auth.token.email == 'mjdshbyr449@gmail.com'",
       "$uid": {
+        ".read": "auth != null && auth.token.email_verified == true && (auth.token.email == 'mjdshbyr449@gmail.com' || auth.uid == $uid)",
+        ".write": "auth != null && auth.token.email_verified == true && auth.token.email == 'mjdshbyr449@gmail.com'",
         ".validate": "newData.hasChildren(['email','displayName','addedAt'])"
       }
     },
@@ -32,7 +26,8 @@
       ".read": "auth != null && auth.token.email_verified == true && auth.token.email == 'mjdshbyr449@gmail.com'",
       "$uid": {
         ".write": "auth != null && auth.token.email_verified == true && auth.token.firebase.sign_in_provider == 'google.com' && (auth.token.email == 'mjdshbyr449@gmail.com' || root.child('adminUsers').child(auth.uid).exists()) && auth.uid == $uid && !data.exists() && newData.child('uid').val() == auth.uid && newData.child('email').val() == auth.token.email && newData.child('allowed').val() == true",
-        ".validate": "newData.hasChildren(['uid','email','displayName','timestamp','allowed'])"
+        ".validate": "newData.hasChildren(['uid','email','displayName','timestamp','allowed'])",
+        ".read": "auth != null && auth.token.email_verified == true && (auth.token.email == 'mjdshbyr449@gmail.com' || auth.uid == $uid)"
       }
     }
   }

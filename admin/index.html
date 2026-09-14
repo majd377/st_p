@@ -2,6 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
+<title>المنارة الطلابية</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#eef4f7">
 <meta name="description" content="المنارة الطلابية — بوابة تعليمية لطلاب دفعة 2010.">
@@ -12,6 +13,7 @@
 <link rel="icon" href="../logo.png">
 <link rel="apple-touch-icon" href="../logo.png">
 <link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/v4-overrides.css">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -19,7 +21,7 @@
 <script>window.APP_ROLE='admin';window.IS_ADMIN=false;window.AUTH_USER=null;</script>
 <script defer src="../assets/js/app.js"></script>
 </head>
-<body class="view-mode">
+<body class="admin-locked">
 <div id="admin-gate" class="auth-screen" style="position:fixed;inset:0;z-index:50000;">
   <div class="auth-card">
     <img src="../logo.png" alt="" style="width:62px;height:62px;object-fit:cover;border-radius:16px;margin-bottom:14px">
@@ -220,13 +222,13 @@
         </div>
 
         <div id="progress" class="content-area">
-            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()" id="backBtn">⬅️ رجوع</button>
+            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()">⬅️ رجوع</button>
             <div class="section-selector" id="progress-sec-selector"></div>
             <div id="progress-list"></div>
         </div>
 
         <div id="recordings" class="content-area">
-            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()" id="backBtn">⬅️ رجوع</button>
+            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()">⬅️ رجوع</button>
             <div class="section-selector" id="record-sec-selector"></div>
             <div class="filters-row" style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
                 <label style="color:var(--text-light);">عرض:</label>
@@ -264,7 +266,7 @@
         </div>
 
         <div id="exams" class="content-area">
-            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()" id="backBtn">⬅️ رجوع</button>
+            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()">⬅️ رجوع</button>
             <div class="section-selector" id="exams-sec-selector"></div>
             <div id="exams-list"></div>
             <div class="add-new-container">
@@ -313,7 +315,7 @@
         </div>
 
         <div id="assignments" class="content-area">
-            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()" id="backBtn">⬅️ رجوع</button>
+            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()">⬅️ رجوع</button>
             <div class="section-selector" id="assign-sec-selector"></div>
             <div class="filters-row" style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
                 <label style="color:var(--text-light);">عرض:</label>
@@ -378,7 +380,7 @@
         </div>
 
         <div id="support" class="content-area">
-            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()" id="backBtn">⬅️ رجوع</button>
+            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()">⬅️ رجوع</button>
             <div id="support-list"></div>
             <div class="add-new-container">
                 <h4>إضافة رقم دعم جديد</h4>
@@ -390,7 +392,7 @@
         </div>
 
         <div id="summaries" class="content-area">
-            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()" id="backBtn">⬅️ رجوع</button>
+            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()">⬅️ رجوع</button>
             <div id="summaries-list"></div>
             <div class="add-new-container">
                 <h4>إضافة ملف جديد</h4>
@@ -401,13 +403,13 @@
         </div>
 
         <div id="live-links" class="content-area">
-            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()" id="backBtn">⬅️ رجوع</button>
+            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()">⬅️ رجوع</button>
             <div class="section-selector" id="live-sec-selector"></div>
             <div id="live-list"></div>
         </div>
 
         <div id="news" class="content-area">
-            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()" id="backBtn">⬅️ رجوع</button>
+            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()">⬅️ رجوع</button>
             <div id="news-list"></div>
             <div class="add-new-container">
                 <h4>إضافة خبر جديد</h4>
@@ -451,7 +453,7 @@
 
         <!-- قسم الكتب والرزم الجديد -->
         <div id="books-packages" class="content-area">
-            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()" id="backBtn">⬅️ رجوع</button>
+            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()">⬅️ رجوع</button>
             <div style="display: flex; gap: 10px; margin-bottom: 20px;">
                 <button id="booksTab" class="sec-btn active" onclick="switchBooksPackagesType('books')">📖 الكتب</button>
                 <button id="packagesTab" class="sec-btn" onclick="switchBooksPackagesType('packages')">📦 الرزم</button>
@@ -466,7 +468,7 @@
         </div>
 
         <div id="teachers" class="content-area">
-            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()" id="backBtn">⬅️ رجوع</button>
+            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()">⬅️ رجوع</button>
             <div class="section-selector" id="teachers-sec-selector"></div>
             <div id="teachers-list"></div>
             <div class="add-new-container">
@@ -479,7 +481,7 @@
         </div>
 
         <div id="group-links" class="content-area">
-            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()" id="backBtn">⬅️ رجوع</button>
+            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()">⬅️ رجوع</button>
             <div class="section-selector" id="group-sec-selector"></div>
             <div id="group-links-list"></div>
             <div class="add-new-container">
@@ -491,7 +493,7 @@
         </div>
 
         <div id="important-links" class="content-area">
-            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()" id="backBtn">⬅️ رجوع</button>
+            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()">⬅️ رجوع</button>
             <div id="important-links-list"></div>
             <div class="add-new-container">
                 <h4>إضافة رابط مهم جديد</h4>
@@ -547,9 +549,9 @@
         </div>
 
         <div id="settings" class="content-area">
-<div class="settings-top"><div><span class="eyebrow">تخصيص شخصي</span><h2>الإعدادات</h2><p>غيّر شكل القراءة والمظهر بالطريقة التي تناسبك، والتغييرات تُحفظ تلقائياً على هذا الجهاز.</p></div><button class="btn-link settings-reset" onclick="resetAppearanceSettings()">إرجاع الوضع العادي</button></div>
+<div class="settings-top"><div><span class="eyebrow">تخصيص شخصي</span><h2>الإعدادات</h2><p></p></div><button class="btn-link settings-reset" onclick="resetAppearanceSettings()">إرجاع الوضع العادي</button></div>
 <div class="settings-grid">
-<section class="settings-panel settings-wide"><div class="settings-panel-head"><div><h3>الخط والقراءة</h3><p>كل خيار معروض بخطه الحقيقي لتعرف شكله قبل اختياره.</p></div><span class="settings-symbol">Aa</span></div>
+<section class="settings-panel settings-wide"><div class="settings-panel-head"><div><h3>الخط والقراءة</h3><p></p></div><span class="settings-symbol">Aa</span></div>
 <div class="font-grid font-grid-real-preview">
 <button onclick="setFont('default')" id="font-default-btn" class="font-choice-btn" style="font-family:Segoe UI,Arial,sans-serif"><strong>الخط العادي</strong><small>المنارة الطلابية</small></button>
 <button onclick="setFont('alatypoo')" id="font-alatypoo-btn" class="font-choice-btn" style="font-family:'AlaTypoo',sans-serif"><strong>عربي هادئ</strong><small style="font-family:'AlaTypoo',sans-serif">المنارة الطلابية</small></button>
@@ -561,7 +563,7 @@
 <div class="range-row"><div class="range-label"><strong>حجم الخط</strong><span id="font-size-value">80%</span></div><input id="font-size-range" type="range" min="80" max="120" step="5" value="80" oninput="setFontScale(this.value)"></div>
 <div class="range-row"><div class="range-label"><strong>تباعد السطور</strong><span id="line-height-value">1.7×</span></div><input id="line-height-range" type="range" min="15" max="22" step="1" value="17" oninput="setLineHeight(this.value)"></div>
 </section>
-<section class="settings-panel"><div class="settings-panel-head"><div><h3>المظهر</h3><p>معاينة لونية مباشرة.</p></div><span class="settings-symbol">◐</span></div>
+<section class="settings-panel"><div class="settings-panel-head"><div><h3>المظهر</h3><p></p></div><span class="settings-symbol">◐</span></div>
 <div class="theme-grid theme-preview-grid">
 <button onclick="setColorScheme('ocean')" id="scheme-ocean-btn" class="theme-option"><span class="theme-swatch ocean"></span><b>نسمة البحر</b><small>لون حي داخل الخانة</small></button>
 <button onclick="setColorScheme('sage')" id="scheme-sage-btn" class="theme-option"><span class="theme-swatch sage"></span><b>ورق الزيتون</b><small>لون حي داخل الخانة</small></button>
@@ -570,11 +572,11 @@
 </div>
 <div class="appearance-switches"><button class="switch-card" onclick="toggleHighContrast()"><span><b>وضوح أعلى</b><small>نص وحدود أوضح</small></span><i id="contrast-state">○</i></button><button class="switch-card" onclick="toggleReducedMotion()"><span><b>حركة أقل</b><small>انتقالات أخف</small></span><i id="motion-state">○</i></button><button class="switch-card" onclick="toggleCompactMode()"><span><b>وضع مدمج</b><small>مسافات أقل</small></span><i id="compact-state">○</i></button></div>
 </section>
-<section class="settings-panel owner-only-panel"><div class="settings-panel-head"><div><h3>إدارة الشعب والمواد</h3><p>زد أو قل الشعب وعدّل أسماءها والمواد العامة.</p></div><span class="settings-symbol">☷</span></div><div id="section-management" class="management-list"></div><div class="management-actions"><button class="btn-add btn-sm" onclick="addNewSection()">+ إضافة شعبة</button><button class="btn-link btn-sm" onclick="openManageSubjects()">إدارة المواد</button></div></section>
-<section class="settings-panel owner-only-panel"><div class="settings-panel-head"><div><h3>الحسابات المصرح لها</h3><p>من هنا تمنح أو تسحب صلاحية الدخول إلى لوحة الإدارة.</p></div><span class="settings-symbol">◎</span></div><div class="permission-add"><input id="admin-email-search" class="editable-input" placeholder="بريد حساب Google"><button class="btn-add btn-sm" onclick="grantAdminByEmail()">منح الصلاحية</button></div><div id="known-accounts-list" class="management-list"></div></section>
+<section class="settings-panel owner-only-panel"><div class="settings-panel-head"><div><h3>إدارة الشعب والمواد</h3><p></p></div><span class="settings-symbol">☷</span></div><div id="section-management" class="management-list"></div><div class="management-actions"><button class="btn-add btn-sm" onclick="addNewSection()">+ إضافة شعبة</button><button class="btn-link btn-sm" onclick="openManageSubjects()">إدارة المواد</button></div></section>
+<section class="settings-panel owner-only-panel"><div class="settings-panel-head"><div><h3>الحسابات المصرح لها</h3><p></p></div><span class="settings-symbol">◎</span></div><div class="permission-add"><input id="admin-email-search" class="editable-input" placeholder="بريد حساب Google"><button class="btn-add btn-sm" onclick="grantAdminByEmail()">منح الصلاحية</button></div><div id="known-accounts-list" class="management-list"></div></section>
 </div></div>
 <div id="about-team" class="content-area">
-            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()" id="backBtn">⬅️ رجوع</button>
+            <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()">⬅️ رجوع</button>
             <div id="team-list"></div>
             <div class="add-new-container">
                 <h4>إضافة عضو فريق تطوير جديد</h4>

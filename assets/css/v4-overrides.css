@@ -1,0 +1,166 @@
+/* =========================================================
+   المنارة الطلابية — V4 visual system
+   ========================================================= */
+@font-face{font-family:'ALDHABI';src:url('../fonts/ALDHABI.TTF') format('truetype');font-display:swap}
+@font-face{font-family:'AlaTypoo';src:url('../fonts/alfont_com_ArbFONTS-AlaTypoo-Medium.ttf') format('truetype');font-display:swap}
+@font-face{font-family:'DWNOUTSH';src:url('../fonts/DWNOUTSH.TTF') format('truetype');font-display:swap}
+@font-face{font-family:'KFXFTOUT';src:url('../fonts/KFEXTOUT.TTF') format('truetype');font-display:swap}
+@font-face{font-family:'PTBLDBRK';src:url('../fonts/PTBLDBRK.TTF') format('truetype');font-display:swap}
+
+:root{
+  --font-scale:.8;
+  --base-font-size:12.8px;
+  --primary-color:#1f5c70;
+  --secondary-color:#6c9cab;
+  --accent-color:#c99b4c;
+  --bg-color:#f2f6f5;
+  --card-bg:#ffffff;
+  --text-color:#24343a;
+  --text-light:#73848a;
+  --border:#dfe8e8;
+  --muted:#829297;
+  --success:#2c7b5b;
+  --danger:#ba5656;
+  --radius:16px;
+  --shadow:0 12px 30px rgba(31,70,82,.07);
+  --font-family:"Segoe UI",Tahoma,Arial,sans-serif;
+}
+
+html{font-size:calc(16px * var(--font-scale))!important;background:var(--bg-color)!important}
+body{zoom:1!important;width:100%!important;min-height:100vh!important;margin:0!important;display:block!important;background:linear-gradient(180deg,#f8fbfa 0%,var(--bg-color) 100%)!important;color:var(--text-color)!important;font-family:var(--font-family)!important;font-size:1rem!important;line-height:1.65!important}
+*{font-family:var(--font-family)!important}
+
+/* Admin is genuinely locked until authentication succeeds. */
+body.admin-locked .sidebar,
+body.admin-locked .main-content,
+body.admin-locked #install-prompt,
+body.admin-locked #splash-overlay{visibility:hidden!important;pointer-events:none!important}
+body.admin-locked #admin-gate{display:grid!important}
+body.admin-authorized #admin-gate{display:none!important}
+body.admin-locked .admin-only,
+body.admin-locked .owner-only-panel,
+body.admin-locked .owner-only-nav{display:none!important}
+body.admin-authorized .admin-only{display:block!important}
+body.admin-authorized .owner-only-nav{display:flex!important}
+body.admin-authorized:not(.owner-mode) .owner-only-panel{display:none!important}
+body.admin-authorized.owner-mode .owner-only-panel{display:block!important}
+
+/* New navigation: centered command deck instead of the old side-bar composition. */
+.sidebar{position:sticky!important;top:0!important;right:auto!important;left:auto!important;width:100%!important;height:auto!important;padding:10px 18px!important;background:rgba(255,255,255,.92)!important;border:0!important;border-bottom:1px solid var(--border)!important;box-shadow:0 8px 24px rgba(31,70,82,.05)!important;backdrop-filter:blur(14px)!important;z-index:1000!important;overflow:visible!important;display:grid!important;grid-template-columns:190px 1fr auto!important;align-items:center!important;gap:14px!important}
+.logo{height:52px!important;margin:0!important;padding:0 4px!important;border:0!important;display:flex!important;align-items:center!important;justify-content:flex-start!important;color:var(--primary-color)!important}
+.logo .site-logo{width:165px!important;height:52px!important;object-fit:contain!important;border-radius:10px!important;box-shadow:none!important}
+.nav-links{list-style:none!important;display:flex!important;flex-wrap:wrap!important;justify-content:center!important;gap:6px!important;max-height:62px!important;overflow:auto!important;padding:3px!important}
+.nav-item{background:transparent!important;border:1px solid transparent!important;color:#53686e!important;border-radius:999px!important;padding:7px 12px!important;font-size:.87rem!important;font-weight:700!important;cursor:pointer!important;white-space:nowrap!important;min-height:34px!important;display:flex!important;align-items:center!important;justify-content:center!important;transition:none!important;box-shadow:none!important}
+.nav-item:hover{background:var(--bg-color)!important;color:var(--primary-color)!important}
+.nav-item.active{background:var(--bg-color)!important;color:var(--primary-color)!important;border-color:#d3e5e3!important;box-shadow:none!important}
+
+.main-content{margin:0!important;padding:24px min(4vw,46px) 52px!important;max-width:1440px!important;margin-inline:auto!important}
+.header{background:transparent!important;border:0!important;padding:8px 0 18px!important;margin:0!important;display:flex!important;justify-content:space-between!important;align-items:flex-end!important;gap:20px!important}
+.page-title h1{font-size:1.9rem!important;color:var(--primary-color)!important;margin:0!important;letter-spacing:-.02em!important}
+.page-title p{font-size:.85rem!important;color:var(--text-light)!important;margin:3px 0 0!important}
+
+/* Home feels like a lightweight student dashboard, not a cloned portal. */
+.dashboard-grid{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:12px!important}
+.feature-card{background:#fff!important;border:1px solid var(--border)!important;border-radius:18px!important;min-height:142px!important;padding:17px!important;box-shadow:0 8px 24px rgba(31,70,82,.05)!important}
+.feature-card:hover{transform:none!important;box-shadow:0 10px 26px rgba(31,70,82,.08)!important;border-color:#cfe0e0!important}
+.feature-icon{width:38px!important;height:38px!important;border-radius:12px!important;background:var(--bg-color)!important;color:var(--primary-color)!important;font-size:1.15rem!important;margin-bottom:10px!important}
+.feature-card h3{font-size:1rem!important;color:var(--primary-color)!important;margin-bottom:3px!important}
+.feature-card p{font-size:.78rem!important;color:#7a898e!important;line-height:1.6!important}
+
+.data-card,.add-new-container,.modal-box,.settings-panel{background:#fff!important;border:1px solid var(--border)!important;border-radius:16px!important;box-shadow:0 9px 25px rgba(31,70,82,.05)!important}
+.data-card{padding:15px!important;margin-bottom:12px!important}
+.data-header{gap:8px!important}
+.data-header h3,.lesson-name{color:var(--primary-color)!important;font-size:1rem!important}
+
+.btn-sm,.btn-link,.btn-save,.btn-delete,.btn-add,.btn-login,.btn-cancel{border-radius:10px!important;padding:7px 11px!important;font-size:.82rem!important;font-weight:700!important}
+.btn-link{background:#edf4f4!important;color:var(--primary-color)!important}
+.btn-save,.btn-add,.btn-login{background:var(--primary-color)!important;color:#fff!important}
+.btn-delete{background:#fff0f0!important;color:#9e4545!important;border:1px solid #f2d4d4!important}
+
+.editable-input,.editable-textarea,.modal-input{background:#fff!important;border:1px solid #d8e3e3!important;border-radius:10px!important;padding:9px 11px!important;color:var(--text-color)!important;outline:none!important;width:100%!important;font:inherit!important}
+.editable-input:focus,.editable-textarea:focus,.modal-input:focus{border-color:#88b0b9!important;box-shadow:0 0 0 3px rgba(96,148,160,.12)!important}
+
+/* Settings are functional, compact, and visual. */
+.settings-top{display:flex!important;justify-content:space-between!important;align-items:center!important;gap:14px!important;margin-bottom:14px!important}
+.settings-top p,.settings-panel-head p,.theme-option small,.switch-card small{display:none!important}
+.settings-top h2{font-size:1.4rem!important;color:#1d566b!important;margin:0!important}
+.settings-grid{display:grid!important;grid-template-columns:1.2fr .8fr!important;gap:12px!important}
+.settings-wide{grid-column:1/-1!important}
+.settings-panel{padding:15px!important}
+.settings-panel-head{margin-bottom:10px!important}
+.settings-panel-head h3{font-size:1rem!important;color:var(--primary-color)!important;margin:0!important}
+.settings-symbol{width:32px!important;height:32px!important;border-radius:10px!important;background:var(--bg-color)!important;color:var(--primary-color)!important}
+.font-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important}
+.font-choice-btn{min-height:76px!important;background:#fff!important;border:1px solid var(--border)!important;border-radius:12px!important;text-align:center!important;padding:9px!important;color:#27434d!important;cursor:pointer!important;display:flex!important;flex-direction:column!important;justify-content:center!important;align-items:center!important}
+.font-choice-btn strong,.font-choice-btn small{font-family:inherit!important}
+#font-default-btn{font-family:"Segoe UI",Tahoma,Arial,sans-serif!important}
+#font-default-btn strong,#font-default-btn small{font-family:"Segoe UI",Tahoma,Arial,sans-serif!important}
+#font-alatypoo-btn,#font-alatypoo-btn strong,#font-alatypoo-btn small{font-family:'AlaTypoo',sans-serif!important}
+#font-dwnoutsh-btn,#font-dwnoutsh-btn strong,#font-dwnoutsh-btn small{font-family:'DWNOUTSH',sans-serif!important}
+#font-kfxftout-btn,#font-kfxftout-btn strong,#font-kfxftout-btn small{font-family:'KFXFTOUT',sans-serif!important}
+#font-ptbldbrk-btn,#font-ptbldbrk-btn strong,#font-ptbldbrk-btn small{font-family:'PTBLDBRK',sans-serif!important}
+#font-aldhabi-btn,#font-aldhabi-btn strong,#font-aldhabi-btn small{font-family:'ALDHABI',sans-serif!important}
+.font-choice-btn strong{font-size:.9rem!important;margin-bottom:2px!important}
+.font-choice-btn small{font-size:.72rem!important;color:#77898e!important}
+.font-choice-btn.selected{background:var(--bg-color)!important;border-color:#c9dedc!important;box-shadow:none!important}
+.range-row{margin-top:11px!important}.range-label{font-size:.78rem!important;margin-bottom:4px!important}.range-row input[type=range]{accent-color:var(--primary-color)!important}
+.theme-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
+.theme-option{min-height:72px!important;border:1px solid var(--border)!important;border-radius:12px!important;padding:8px!important;cursor:pointer!important;display:flex!important;align-items:center!important;gap:9px!important;text-align:right!important;background:#fff!important}
+.theme-option b{font-size:.8rem!important}.theme-swatch{width:54px!important;height:40px!important;border-radius:9px!important;margin:0!important;flex:0 0 54px!important}
+.theme-option.selected{border:2px solid var(--accent-color)!important;padding:7px!important}
+.theme-option#scheme-ocean-btn{background:linear-gradient(90deg,#eff8fb 0%,#fff 72%)!important}
+.theme-option#scheme-sage-btn{background:linear-gradient(90deg,#eff8f2 0%,#fff 72%)!important}
+.theme-option#scheme-sand-btn{background:linear-gradient(90deg,#fff8e9 0%,#fff 72%)!important}
+.theme-option#scheme-rose-btn{background:linear-gradient(90deg,#fff3f6 0%,#fff 72%)!important}
+.appearance-switches{grid-template-columns:repeat(3,1fr)!important;gap:7px!important;margin-top:10px!important}
+.switch-card{background:#fff!important;border:1px solid var(--border)!important;border-radius:11px!important;padding:9px!important}
+.switch-card b{font-size:.78rem!important}
+
+/* Team font preview is centered and clearly an admin-only tool. */
+.team-font-preview-centered{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;text-align:center!important;max-width:760px!important;margin:0 auto 14px!important;min-height:110px!important;background:#fbfdfd!important}
+.team-font-preview-centered strong{font-family:var(--font-family)!important;font-size:1.35rem!important}
+.team-font-preview-centered small{font-size:.74rem!important}
+
+/* Weekly schedule: one day + one section + many lessons. */
+.schedule-toolbar{display:grid!important;grid-template-columns:1fr 1fr auto!important;gap:8px!important;align-items:end!important}
+.weekly-grid{display:block!important}
+.schedule-list{display:grid!important;gap:8px!important}
+.schedule-row,.schedule-add{border:1px solid var(--border)!important;border-radius:13px!important;background:#fff!important}
+.schedule-grid-fields{grid-template-columns:1.1fr 1fr .7fr .7fr!important;gap:7px!important}
+.schedule-grid-fields .full{grid-column:1/-1!important}
+
+/* Admin-only sections never leak into another section or the viewer. */
+.content-area.admin-only{display:none!important}
+body.admin-authorized .content-area.admin-only{display:none!important}
+body.admin-authorized .content-area.admin-only.active{display:block!important}
+body:not(.admin-authorized) .content-area.admin-only{display:none!important}
+.owner-only-nav,.owner-only-panel{display:none!important}
+body.admin-authorized.owner-mode .owner-only-nav{display:flex!important}
+body.admin-authorized.owner-mode .owner-only-panel{display:block!important}
+
+/* Modals for subject management. */
+.modal-overlay{position:fixed;inset:0;background:rgba(26,49,58,.28);backdrop-filter:blur(5px);z-index:40000;display:none;place-items:center;padding:20px}
+.modal-overlay.open{display:grid!important}.subject-manager{width:min(520px,100%);padding:18px}.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.modal-close{border:0;background:#eef4f4;color:var(--primary-color);width:32px;height:32px;border-radius:9px;cursor:pointer;font-size:20px}.modal-form{display:flex;gap:8px;margin-top:10px}.modal-form .editable-input{flex:1}.subject-name{flex:1;font-weight:700;color:#33555e}
+
+/* Empty optional information should not produce empty-looking buttons. */
+.optional-empty{display:none!important}
+
+/* Auth screen */
+.auth-screen{background:radial-gradient(circle at 20% 10%,#e4f1f1,transparent 32%),linear-gradient(180deg,#f6faf9,#edf4f3)!important}
+.auth-card{width:min(440px,100%)!important;border-radius:22px!important;box-shadow:0 24px 60px rgba(31,70,82,.12)!important}
+
+@media (max-width:1050px){
+  .sidebar{grid-template-columns:150px 1fr!important}
+  .sidebar > .nav-actions{display:none!important}
+  .dashboard-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+}
+@media (max-width:860px){
+  .sidebar{position:sticky!important;grid-template-columns:1fr!important;padding:9px 12px!important}
+  .logo{justify-content:center!important}.nav-links{justify-content:flex-start!important;flex-wrap:nowrap!important;max-height:none!important}
+  .main-content{padding:18px 14px 35px!important}.dashboard-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.settings-grid{grid-template-columns:1fr!important}.settings-wide{grid-column:auto!important}
+  .font-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.schedule-toolbar{grid-template-columns:1fr!important}.schedule-grid-fields{grid-template-columns:1fr 1fr!important}.schedule-grid-fields .full{grid-column:1/-1!important}
+  .appearance-switches{grid-template-columns:1fr!important}
+}
+@media (max-width:520px){
+  .page-title h1{font-size:1.45rem!important}.dashboard-grid{grid-template-columns:1fr!important}.font-grid{grid-template-columns:1fr!important}.theme-grid{grid-template-columns:1fr!important}.main-content{padding-inline:11px!important}
+}

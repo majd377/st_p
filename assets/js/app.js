@@ -70,48 +70,27 @@
         });
         // --- DATA INITIALIZATION ---
         const defaultData = {
-            sections: 13,
-            sectionNames: Array.from({length: 13}, (_, i) => `شعبة ${i+1}`),
-            subjects: ["اللغة العربية", "اللغة الإنجليزية", "الرياضيات", "الفيزياء", "الكيمياء", "أحياء"],
+            sections: 1,
+            sectionNames: ['الشعبة 1'],
+            subjects: [],
             progress: {}, 
             assignments: {},
             exams: {},
             recordings: {},
             recordingsLinks: {},
             recordingsChannelLink: "",
-            support: [
-                { id: 1, name: "أ. محمد أحمد", role: "مشرف الشعب العلمي", phone: "0790000000" },
-                { id: 2, name: "أ. سارة علي", role: "دعم فني", phone: "0780000000" }
-            ],
-            summaries: [
-                { id: 1, title: "ملخص قوانين الفيزياء - الفصل الأول", link: "#" },
-                { id: 2, title: "شرح قواعد الإنجليزية Unit 1", link: "#" }
-            ],
+            support: [],
+            summaries: [],
             liveLinks: {},
-            news: [
-                { id: 1, title: "بداية السنة الدراسية الجديدة", content: "نتمنى عاماً دراسياً مميزاً لجميع الطلاب والطالبات" },
-                { id: 2, title: "تحديث المنهج الجديد", content: "تم تحديث المنهج الدراسي للفصل الثاني" }
-            ],
+            news: [],
             weeklyScheduleEnabled: true,
             weeklySchedule: {
                 Saturday: {}, Sunday: {}, Monday: {}, Tuesday: {}, Wednesday: {}, Thursday: {}, Friday: {}
             },
-            importantLinks: [
-                { id: 1, title: "منصة التعليم الحكومية", url: "#" },
-                { id: 2, title: "مكتبة الموارد التعليمية", url: "#" }
-            ],
-            team: [
-                { id: 1, name: "أحمد محمد", role: "مدير الموقع", bio: "مدير المشروع والتطوير العام", whatsapp: "0790000001" },
-                { id: 2, name: "ليلى علي", role: "مصممة واجهات", bio: "مسؤولة تصميم الواجهات والتجربة", whatsapp: "0790000002" }
-            ],
-            books: [
-                { id: 1, title: "كتاب الرياضيات - الفصل الأول", link: "#" },
-                { id: 2, title: "كتاب الفيزياء - الفصل الأول", link: "#" }
-            ],
-            packages: [
-                { id: 1, title: "رزمة شاملة للفصل الأول", link: "#" },
-                { id: 2, title: "رزمة الاختبارات النهائية", link: "#" }
-            ]
+            importantLinks: [],
+            team: [],
+            books: [],
+            packages: []
             ,
             // per-section teachers and group links (will be normalized)
             teachers: {
@@ -184,6 +163,22 @@
                 // ensure recordingsLinks is an object but do not populate per-subject keys
             }
 
+            // Restore array-based maps coming from Firebase into the object shape used by the renderer.
+            for (let i = 1; i <= (data.sections || 0); i++) {
+                for (const key of ['progress','liveLinks','recordingsLinks']) {
+                    if (Array.isArray(data[key]?.[i])) {
+                        const obj = {};
+                        data[key][i].forEach(entry => {
+                            if (!entry || typeof entry !== 'object') return;
+                            const subject = String(entry.subject || '').trim();
+                            if (!subject) return;
+                            obj[subject] = entry.value !== undefined ? entry.value : (entry.link !== undefined ? entry : entry);
+                        });
+                        data[key][i] = obj;
+                    }
+                }
+            }
+
             return data;
         }
 
@@ -192,35 +187,13 @@
             function prepareAppDataForFirebase(src) {
                 try {
                     const data = JSON.parse(JSON.stringify(src || {}));
-                    // work on per-section keys: progress, liveLinks, recordingsLinks
                     const sections = data.sections || 0;
-                    data.progress = data.progress || {};
-                    data.liveLinks = data.liveLinks || {};
-                    data.recordingsLinks = data.recordingsLinks || {};
                     for (let i = 1; i <= sections; i++) {
-                        // progress: convert object -> array of { subject, value }
-                        if (data.progress[i] && typeof data.progress[i] === 'object' && !Array.isArray(data.progress[i])) {
-                            const arr = [];
-                            Object.keys(data.progress[i]).forEach(k => {
-                                arr.push({ subject: k, value: data.progress[i][k] });
-                            });
-                            data.progress[i] = arr;
-                        }
-                        // liveLinks: convert object -> array of { subject, value }
-                        if (data.liveLinks[i] && typeof data.liveLinks[i] === 'object' && !Array.isArray(data.liveLinks[i])) {
-                            const arr = [];
-                            Object.keys(data.liveLinks[i]).forEach(k => {
-                                arr.push({ subject: k, value: data.liveLinks[i][k] });
-                            });
-                            data.liveLinks[i] = arr;
-                        }
-                        // recordingsLinks: same treatment
-                        if (data.recordingsLinks[i] && typeof data.recordingsLinks[i] === 'object' && !Array.isArray(data.recordingsLinks[i])) {
-                            const arr = [];
-                            Object.keys(data.recordingsLinks[i]).forEach(k => {
-                                arr.push({ subject: k, value: data.recordingsLinks[i][k] });
-                            });
-                            data.recordingsLinks[i] = arr;
+                        for (const key of ['progress','liveLinks','recordingsLinks']) {
+                            const value = data[key]?.[i];
+                            if (value && typeof value === 'object' && !Array.isArray(value)) {
+                                data[key][i] = Object.keys(value).map(subject => ({ subject, value: value[subject] }));
+                            }
                         }
                     }
                     return data;
@@ -231,6 +204,31 @@
             }
 
         let appData = normalizeAppData(JSON.parse(localStorage.getItem('collegeAppData')) || defaultData);
+
+        let firebaseLoadStarted = false;
+        function canWriteData(){ return window.APP_ROLE !== 'admin' || window.IS_ADMIN === true; }
+        function saveData(){
+            try { localStorage.setItem('collegeAppData', JSON.stringify(appData)); } catch(e) { console.warn('localStorage save failed', e); }
+            if(!canWriteData()){ console.warn('Blocked client write: admin session is not authorized.'); return Promise.reject(new Error('UNAUTHORIZED')); }
+            if(!db) return Promise.resolve();
+            return db.ref('appData').set(prepareAppDataForFirebase(appData)).catch(err => {
+                console.error('Firebase save failed:', err);
+                throw err;
+            });
+        }
+        window.saveData = saveData;
+
+        function loadDataFromFirebase(){
+            if(firebaseLoadStarted || !db) return;
+            firebaseLoadStarted = true;
+            db.ref('appData').once('value').then(snap => {
+                if(!snap.exists()) return;
+                appData = normalizeAppData(snap.val());
+                try { localStorage.setItem('collegeAppData', JSON.stringify(appData)); } catch(e) {}
+                try { render(); } catch(e) { console.warn('render after Firebase load failed', e); }
+            }).catch(err => console.warn('Firebase appData load failed:', err));
+        }
+        loadDataFromFirebase();
 
         // --- إعدادات المظهر (Font & Color Scheme) ---
         // تخزين الإعدادات محليًا فقط (localStorage)
@@ -243,6 +241,8 @@
             reducedMotion: false,
             compactMode: false
         };
+
+        function saveUserSettings(value){ try { localStorage.setItem('userSettings', JSON.stringify(value || DEFAULT_SETTINGS)); } catch(e) { console.warn('userSettings save failed', e); } }
 
         // تحميل الإعدادات من localStorage
         function loadUserSettings() {
@@ -274,7 +274,7 @@ if(userSettings && userSettings.colorScheme==='luxury') userSettings.colorScheme
         }
         function updateFontButtons(){const cur=userSettings.font||'default';document.querySelectorAll('.font-choice-btn').forEach(b=>b.classList.toggle('selected',b.id===`font-${cur}-btn`));}
         function updateColorSchemeButtons(){const cur=userSettings.colorScheme||'ocean';document.querySelectorAll('.theme-option').forEach(b=>b.classList.toggle('selected',b.id===`scheme-${cur}-btn`));}
-        function setFontScale(v){const n=Math.max(80,Math.min(120,Number(v)||80));document.documentElement.style.setProperty('--font-scale',n/100);userSettings.fontScale=n;saveUserSettings(userSettings);const e=document.getElementById('font-size-value');if(e)e.textContent=n+'%';}
+        function setFontScale(v){const n=Math.max(80,Math.min(120,Number(v)||80));document.documentElement.style.setProperty('--font-scale',n/100);document.documentElement.style.setProperty('--base-font-size', (16*n/100)+'px');userSettings.fontScale=n;saveUserSettings(userSettings);const e=document.getElementById('font-size-value');if(e)e.textContent=n+'%';}
         function setLineHeight(v){const n=Math.max(15,Math.min(22,Number(v)||17));document.documentElement.style.setProperty('--line-height-scale',n/10);userSettings.lineHeight=n;saveUserSettings(userSettings);const e=document.getElementById('line-height-value');if(e)e.textContent=(n/10).toFixed(1)+'×';}
         function toggleHighContrast(){userSettings.highContrast=!userSettings.highContrast;document.body.classList.toggle('high-contrast',userSettings.highContrast);saveUserSettings(userSettings);updateAppearanceStates();}
         function toggleReducedMotion(){userSettings.reducedMotion=!userSettings.reducedMotion;document.body.classList.toggle('reduced-motion',userSettings.reducedMotion);saveUserSettings(userSettings);updateAppearanceStates();}
@@ -309,6 +309,7 @@ if(userSettings && userSettings.colorScheme==='luxury') userSettings.colorScheme
         let sectionHistory = [];
 
         function showSection(sectionId) {
+            if(window.APP_ROLE === 'admin' && !window.IS_ADMIN) return;
             if (currentView !== sectionId) {
                 sectionHistory.push(currentView);
             }
@@ -1460,6 +1461,28 @@ if(userSettings && userSettings.colorScheme==='luxury') userSettings.colorScheme
             }
         }
 
+        function openManageSubjects(){
+            if(!window.IS_OWNER) return;
+            let modal=document.getElementById('subject-manager-modal');
+            if(!modal){
+                modal=document.createElement('div');
+                modal.id='subject-manager-modal';
+                modal.className='modal-overlay';
+                modal.innerHTML='<div class="modal-box subject-manager"><div class="modal-head"><h3>إدارة المواد</h3><button class="modal-close" aria-label="إغلاق">×</button></div><div id="subject-manager-list" class="management-list"></div><div class="modal-form"><input id="new-subject-name" class="editable-input" placeholder="اسم المادة"><button class="btn-add btn-sm" id="subject-add-btn">إضافة مادة</button></div></div>';
+                document.body.appendChild(modal);
+                modal.querySelector('.modal-close').onclick=()=>modal.remove();
+                modal.addEventListener('click',e=>{if(e.target===modal)modal.remove()});
+                modal.querySelector('#subject-add-btn').onclick=()=>{addSubject();renderSubjectManager();};
+            }
+            renderSubjectManager();
+            modal.classList.add('open');
+        }
+        function renderSubjectManager(){
+            const box=document.getElementById('subject-manager-list'); if(!box) return;
+            if(!appData.subjects.length){ box.innerHTML='<div class="notice">لا توجد مواد بعد.</div>'; return; }
+            box.innerHTML=appData.subjects.map((subject,i)=>'<div class="management-row"><span class="subject-name">'+escapeHtml(subject)+'</span><button class="btn-delete btn-sm" onclick="deleteSubject('+JSON.stringify(subject)+');renderSubjectManager();">حذف</button></div>').join('');
+        }
+
         function deleteSubject(subject) {
             if(!confirm('هل أنت متأكد من حذف المادة نهائياً من جميع الشعب؟ هذه الخطوة ستحذف التقدم والروابط الخاصة بالمادة.')) return;
             const idx = appData.subjects.indexOf(subject);
@@ -1889,7 +1912,7 @@ if(userSettings && userSettings.colorScheme==='luxury') userSettings.colorScheme
             const container = document.getElementById('team-list');
             container.innerHTML = '';
             if(window.IS_ADMIN){
-                const preview=document.createElement('div');preview.className='team-font-preview';
+                const preview=document.createElement('div');preview.className='team-font-preview team-font-preview-centered';
                 preview.innerHTML='<small>معاينة الخط الحالي</small><strong style="font-family:var(--font-family)">المنارة الطلابية — فريق التطوير</strong>';
                 container.appendChild(preview);
             }

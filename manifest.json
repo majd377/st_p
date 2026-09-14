@@ -3,8 +3,8 @@
   "short_name": "المنارة الطلابية",
   "start_url": ".",
   "display": "standalone",
-  "background_color": "#fff9ef",
-  "theme_color": "#000000",
+  "background_color": "#f2f6f5",
+  "theme_color": "#1f5c70",
   "lang": "ar",
   "icons": [
     {
