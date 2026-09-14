@@ -71,6 +71,7 @@
         // --- DATA INITIALIZATION ---
         const defaultData = {
             sections: 13,
+            sectionNames: Array.from({length: 13}, (_, i) => `شعبة ${i+1}`),
             subjects: ["اللغة العربية", "اللغة الإنجليزية", "الرياضيات", "الفيزياء", "الكيمياء", "أحياء"],
             progress: {}, 
             assignments: {},
@@ -141,6 +142,9 @@
             if(!data.sections) data.sections = defaultData.sections;
             if(!Array.isArray(data.subjects)) data.subjects = Array.isArray(defaultData.subjects) ? defaultData.subjects.slice() : [];
             if(!data.progress) data.progress = {};
+            if(!Array.isArray(data.sectionNames)) data.sectionNames = Array.from({length:data.sections || 0}, (_, i) => `شعبة ${i+1}`);
+            while(data.sectionNames.length < (data.sections || 0)) data.sectionNames.push(`شعبة ${data.sectionNames.length+1}`);
+            if(data.sectionNames.length > (data.sections || 0)) data.sectionNames = data.sectionNames.slice(0, data.sections || 0);
             if(!data.assignments) data.assignments = {};
             if(!data.liveLinks) data.liveLinks = {};
             if(!data.recordings) data.recordings = {};
@@ -233,8 +237,8 @@
         const DEFAULT_SETTINGS = {
             font: 'default',
             colorScheme: 'ocean',
-            fontScale: 100,
-            lineHeight: 18,
+            fontScale: 80,
+            lineHeight: 17,
             highContrast: false,
             reducedMotion: false,
             compactMode: false
@@ -252,476 +256,53 @@
 
         // الحصول على الإعدادات الحالية (قبل استدعاء applyStoredSettings)
         let userSettings = loadUserSettings();
-
-// Never reintroduce the old charcoal/gold appearance as a stored viewer default.
-if (userSettings && userSettings.colorScheme === 'luxury') {
-    // Preserve the user's selected preset name, but the preset itself is now light and readable.
-}
+if(userSettings && userSettings.colorScheme==='luxury') userSettings.colorScheme='ocean';
 
 
         // تطبيق الخط
         function setFont(fontName) {
-            const fontMap = {
-                'default': '"Segoe UI", Tahoma, Arial, sans-serif',
-                'aldhabi': "'ALDHABI', sans-serif",
-                'alatypoo': "'AlaTypoo', sans-serif",
-                'dwnoutsh': "'Lemonada', sans-serif",
-                'kfxftout': "'KFXFTOUT', sans-serif",
-                'ptbldbrk': "'PTBLDBRK', sans-serif"
-            };
-
-            if(fontMap[fontName]) {
-                // تطبيق الخط عبر CSS variable
-                document.documentElement.style.setProperty('--font-family', fontMap[fontName]);
-                // ضبط أحجام مخصصة: ALDHABI=30px, PTBLDBRK=16px, DWNOUTSH(Lemonada)=16px، الباقي=24px
-                if (fontName === 'aldhabi') {
-                    document.documentElement.style.setProperty('--base-font-size', '30px');
-                } else if (fontName === 'ptbldbrk') {
-                    document.documentElement.style.setProperty('--base-font-size', '16px');
-                } else if (fontName === 'dwnoutsh') {
-                    document.documentElement.style.setProperty('--base-font-size', '16px');
-                } else {
-                    document.documentElement.style.setProperty('--base-font-size', '24px');
-                }
-                userSettings.font = fontName;
-                saveUserSettings(userSettings);
-                updateFontButtons();
-                console.log('✅ تم تغيير الخط إلى:', fontName);
-            }
+            const map = {default:'"Segoe UI", Tahoma, Arial, sans-serif',aldhabi:"'ALDHABI', sans-serif",alatypoo:"'AlaTypoo', sans-serif",dwnoutsh:"'DWNOUTSH', sans-serif",kfxftout:"'KFXFTOUT', sans-serif",ptbldbrk:"'PTBLDBRK', sans-serif"};
+            if(!map[fontName]) return;
+            document.documentElement.style.setProperty('--font-family', map[fontName]);
+            userSettings.font=fontName; saveUserSettings(userSettings); updateFontButtons();
         }
-
-        // تطبيق مخطط الألوان
-        function setColorScheme(schemeName) {
-            const colorSchemes = {
-                'ocean': {primary:'#2f6473',secondary:'#5f8792',accent:'#e2b96f',bg:'#f4f8f9',card:'#ffffff',text:'#26383f',textLight:'#6d7f86'},
-                'sage': {primary:'#477263',secondary:'#759889',accent:'#cba965',bg:'#f5f8f5',card:'#ffffff',text:'#2e3c38',textLight:'#6e7d76'},
-                'sand': {primary:'#765f3d',secondary:'#a18459',accent:'#d9b870',bg:'#faf7f1',card:'#ffffff',text:'#413a31',textLight:'#7c7469'},
-                'rose': {primary:'#805968',secondary:'#a77a88',accent:'#d9b2a2',bg:'#fbf6f8',card:'#ffffff',text:'#44383c',textLight:'#7d6d72'},
-                'blue': {primary:'#2f6473',secondary:'#5f8792',accent:'#e2b96f',bg:'#f4f8f9',card:'#ffffff',text:'#26383f',textLight:'#6d7f86'},
-                'green': {primary:'#477263',secondary:'#759889',accent:'#cba965',bg:'#f5f8f5',card:'#ffffff',text:'#2e3c38',textLight:'#6e7d76'},
-                'orange': {primary:'#765f3d',secondary:'#a18459',accent:'#d9b870',bg:'#faf7f1',card:'#ffffff',text:'#413a31',textLight:'#7c7469'},
-                'pink': {primary:'#805968',secondary:'#a77a88',accent:'#d9b2a2',bg:'#fbf6f8',card:'#ffffff',text:'#44383c',textLight:'#7d6d72'},
-                'luxury': {primary:'#2f6473',secondary:'#5f8792',accent:'#e2b96f',bg:'#f4f8f9',card:'#ffffff',text:'#26383f',textLight:'#6d7f86'}
-            };
-
-            const scheme = colorSchemes[schemeName];
-            if(scheme) {
-                const root = document.documentElement;
-                root.style.setProperty('--primary-color', scheme.primary);
-                root.style.setProperty('--secondary-color', scheme.secondary);
-                root.style.setProperty('--accent-color', scheme.accent);
-                root.style.setProperty('--bg-color', scheme.bg);
-                root.style.setProperty('--card-bg', scheme.card);
-                root.style.setProperty('--text-color', scheme.text);
-                root.style.setProperty('--text-light', scheme.textLight);
-                root.style.setProperty('--settings-bg', scheme.settingsBg || '#ffffff');
-
-                userSettings.colorScheme = schemeName;
-                saveUserSettings(userSettings);
-                updateColorSchemeButtons();
-                console.log('✅ تم تغيير مخطط الألوان إلى:', schemeName);
-            }
+        function setColorScheme(schemeName){
+            const C={ocean:{p:'#1e5472',s:'#5f8092',a:'#d8a64d',b:'#f4f8fb',t:'#243540',m:'#6f7e87'},sage:{p:'#35695e',s:'#6c8f83',a:'#c5a25d',b:'#f4f8f5',t:'#2d3c38',m:'#6f807a'},sand:{p:'#765c35',s:'#9b7b4f',a:'#c89945',b:'#faf7ef',t:'#41382d',m:'#7f7566'},rose:{p:'#815768',s:'#a77a8c',a:'#d6aa9a',b:'#fbf6f8',t:'#483a40',m:'#817279'}};
+            const c=C[schemeName]||C.ocean, r=document.documentElement;
+            r.style.setProperty('--primary-color',c.p);r.style.setProperty('--secondary-color',c.s);r.style.setProperty('--accent-color',c.a);r.style.setProperty('--bg-color',c.b);r.style.setProperty('--text-color',c.t);r.style.setProperty('--text-light',c.m);r.style.setProperty('--card-bg','#fff');
+            userSettings.colorScheme=schemeName; saveUserSettings(userSettings); updateColorSchemeButtons();
         }
-
-        // تحديث أزرار الخط (تسليط الضوء على المختار)
-        function updateFontButtons() {
-            const fontButtons = ['font-default-btn','font-aldhabi-btn', 'font-alatypoo-btn', 'font-dwnoutsh-btn', 'font-kfxftout-btn', 'font-ptbldbrk-btn'];
-            fontButtons.forEach(id => {
-                const btn = document.getElementById(id);
-                if(btn) {
-                    if(id === `font-${userSettings.font}-btn`) {
-                        btn.style.borderColor = getComputedStyle(document.documentElement).getPropertyValue('--accent-color').trim() || '#f59e0b';
-                        btn.style.borderWidth = '3px';
-                        btn.style.background = '#fff5e6';
-                    } else {
-                        btn.style.borderColor = '#ccc';
-                        btn.style.borderWidth = '2px';
-                        btn.style.background = '#fff';
-                    }
-                }
-            });
+        function updateFontButtons(){const cur=userSettings.font||'default';document.querySelectorAll('.font-choice-btn').forEach(b=>b.classList.toggle('selected',b.id===`font-${cur}-btn`));}
+        function updateColorSchemeButtons(){const cur=userSettings.colorScheme||'ocean';document.querySelectorAll('.theme-option').forEach(b=>b.classList.toggle('selected',b.id===`scheme-${cur}-btn`));}
+        function setFontScale(v){const n=Math.max(80,Math.min(120,Number(v)||80));document.documentElement.style.setProperty('--font-scale',n/100);userSettings.fontScale=n;saveUserSettings(userSettings);const e=document.getElementById('font-size-value');if(e)e.textContent=n+'%';}
+        function setLineHeight(v){const n=Math.max(15,Math.min(22,Number(v)||17));document.documentElement.style.setProperty('--line-height-scale',n/10);userSettings.lineHeight=n;saveUserSettings(userSettings);const e=document.getElementById('line-height-value');if(e)e.textContent=(n/10).toFixed(1)+'×';}
+        function toggleHighContrast(){userSettings.highContrast=!userSettings.highContrast;document.body.classList.toggle('high-contrast',userSettings.highContrast);saveUserSettings(userSettings);updateAppearanceStates();}
+        function toggleReducedMotion(){userSettings.reducedMotion=!userSettings.reducedMotion;document.body.classList.toggle('reduced-motion',userSettings.reducedMotion);saveUserSettings(userSettings);updateAppearanceStates();}
+        function toggleCompactMode(){userSettings.compactMode=!userSettings.compactMode;document.body.classList.toggle('compact-mode',userSettings.compactMode);saveUserSettings(userSettings);updateAppearanceStates();}
+        function updateAppearanceStates(){[['contrast-state',userSettings.highContrast],['motion-state',userSettings.reducedMotion],['compact-state',userSettings.compactMode]].forEach(x=>{const e=document.getElementById(x[0]);if(e)e.textContent=x[1]?'●':'○';});}
+        function resetAppearanceSettings(){userSettings={...DEFAULT_SETTINGS};saveUserSettings(userSettings);setFont('default');setColorScheme('ocean');setFontScale(80);setLineHeight(17);document.body.classList.remove('high-contrast','reduced-motion','compact-mode');updateAppearanceStates();render();}
+        function applyStoredSettings(){
+            const fm={default:'"Segoe UI", Tahoma, Arial, sans-serif',aldhabi:"'ALDHABI', sans-serif",alatypoo:"'AlaTypoo', sans-serif",dwnoutsh:"'DWNOUTSH', sans-serif",kfxftout:"'KFXFTOUT', sans-serif",ptbldbrk:"'PTBLDBRK', sans-serif"};
+            document.documentElement.style.setProperty('--font-family',fm[userSettings.font]||fm.default);setColorScheme(userSettings.colorScheme||'ocean');setFontScale(userSettings.fontScale||80);setLineHeight(userSettings.lineHeight||17);document.body.classList.toggle('high-contrast',!!userSettings.highContrast);document.body.classList.toggle('reduced-motion',!!userSettings.reducedMotion);document.body.classList.toggle('compact-mode',!!userSettings.compactMode);updateAppearanceStates();
         }
-
-        // تحديث أزرار مخطط الألوان
-        function updateColorSchemeButtons() {
-            const schemeButtons = ['scheme-ocean-btn','scheme-sage-btn','scheme-sand-btn','scheme-rose-btn','scheme-blue-btn', 'scheme-green-btn', 'scheme-orange-btn', 'scheme-pink-btn', 'scheme-luxury-btn'];
-            const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent-color').trim() || '#f59e0b';
-            schemeButtons.forEach(id => {
-                const btn = document.getElementById(id);
-                if(btn) {
-                    if(id === `scheme-${userSettings.colorScheme}-btn`) {
-                        btn.style.borderColor = accentColor;
-                        btn.style.borderWidth = '4px';
-                        btn.style.boxShadow = `0 0 15px ${accentColor}40`;
-                    } else {
-                        btn.style.borderColor = '#ccc';
-                        btn.style.borderWidth = '3px';
-                        btn.style.boxShadow = 'none';
-                    }
-                }
-            });
-        }
-
-        function setFontScale(value){
-            const n=Math.max(85,Math.min(125,Number(value)||100));
-            document.documentElement.style.setProperty('--font-scale', n/100);
-            userSettings.fontScale=n; saveUserSettings(userSettings);
-            const el=document.getElementById('font-size-value'); if(el) el.textContent=n+'%';
-        }
-        function setLineHeight(value){
-            const n=Math.max(15,Math.min(21,Number(value)||18));
-            document.documentElement.style.setProperty('--line-height-scale', n/10);
-            userSettings.lineHeight=n; saveUserSettings(userSettings);
-            const el=document.getElementById('line-height-value'); if(el) el.textContent=(n/10).toFixed(1)+'×';
-        }
-        function toggleHighContrast(){
-            userSettings.highContrast=!userSettings.highContrast;
-            document.body.classList.toggle('high-contrast',!!userSettings.highContrast); saveUserSettings(userSettings); updateAppearanceStates();
-        }
-        function toggleReducedMotion(){
-            userSettings.reducedMotion=!userSettings.reducedMotion;
-            document.body.classList.toggle('reduced-motion',!!userSettings.reducedMotion); saveUserSettings(userSettings); updateAppearanceStates();
-        }
-        function toggleCompactMode(){
-            userSettings.compactMode=!userSettings.compactMode;
-            document.body.classList.toggle('compact-mode',!!userSettings.compactMode); saveUserSettings(userSettings); updateAppearanceStates();
-        }
-        function updateAppearanceStates(){
-            [['contrast-state',userSettings.highContrast],['motion-state',userSettings.reducedMotion],['compact-state',userSettings.compactMode]].forEach(([id,on])=>{const e=document.getElementById(id);if(e)e.textContent=on?'●':'○';});
-        }
-        function resetAppearanceSettings(){
-            userSettings={...DEFAULT_SETTINGS}; saveUserSettings(userSettings);
-            setFont('default'); setColorScheme('ocean'); setFontScale(100); setLineHeight(18);
-            document.body.classList.remove('high-contrast','reduced-motion','compact-mode'); updateAppearanceStates(); updateFontButtons(); updateColorSchemeButtons();
-        }
-
-        // تطبيق الإعدادات المحفوظة (الخط و الألوان)
-        function applyStoredSettings() {
-            if(userSettings.font) setFont(userSettings.font);
-            if(userSettings.colorScheme) setColorScheme(userSettings.colorScheme);
-            setFontScale(userSettings.fontScale || 100);
-            setLineHeight(userSettings.lineHeight || 18);
-            document.body.classList.toggle('high-contrast',!!userSettings.highContrast);
-            document.body.classList.toggle('reduced-motion',!!userSettings.reducedMotion);
-            document.body.classList.toggle('compact-mode',!!userSettings.compactMode);
-            setTimeout(() => { updateFontButtons(); updateColorSchemeButtons(); updateAppearanceStates(); }, 100);
-        }
-        
         applyStoredSettings();
 
-        // If the user still has the original default subjects list, replace it with the new per-subject list.
-        (function migrateDefaultSubjects() {
-            try {
-                const oldDefaults = ["الرياضيات","الفيزياء","الكيمياء","اللغة العربية","اللغة الإنجليزية","علوم الحاسوب","التربية الإسلامية"];
-                const preferred = ["اللغة العربية", "اللغة الإنجليزية", "الرياضيات", "الفيزياء", "الكيمياء", "أحياء"];
-                if(Array.isArray(appData.subjects) && JSON.stringify(appData.subjects) === JSON.stringify(oldDefaults)) {
-                    appData.subjects = preferred.slice();
-                    // ensure per-section progress entries exist for new subjects
-                    for(let i=1;i<=appData.sections;i++) {
-                        if(!appData.progress[i]) appData.progress[i] = {};
-                        preferred.forEach(s => { if(!appData.progress[i][s]) appData.progress[i][s] = { current:1, total:20 }; });
-                    }
-                    saveData();
-                }
-            } catch(e) { console.warn('migrateDefaultSubjects failed', e); }
-        })();
-
-        // Return a cleaned, deduplicated subjects array. Splits entries that contain commas or Arabic commas.
-        function getSubjectsList() {
-            try {
-                const raw = Array.isArray(appData.subjects) ? appData.subjects.slice() : [];
-                const out = [];
-                raw.forEach(item => {
-                    if(!item || typeof item !== 'string') return;
-                    // If someone pasted many subjects into one string, split by comma or Arabic comma
-                    const parts = item.split(/\s*[,،]\s*/).map(s => s.trim()).filter(Boolean);
-                    parts.forEach(p => { if(!out.includes(p)) out.push(p); });
-                });
-                return out;
-            } catch(e) { return Array.isArray(appData.subjects) ? appData.subjects : []; }
+        function escapeHtml(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+        function getSectionLabel(i){return (appData.sectionNames&&appData.sectionNames[i-1])||`شعبة ${i}`;}
+        function renderSectionManagement(){
+            const box=document.getElementById('section-management');if(!box||!window.IS_OWNER){if(box)box.innerHTML='';return;}box.innerHTML='';
+            for(let i=1;i<=appData.sections;i++){const row=document.createElement('div');row.className='management-row';row.innerHTML='<input class="editable-input" value="'+escapeHtml(getSectionLabel(i))+'" placeholder="اسم الشعبة"><button class="btn-delete btn-sm" '+(appData.sections<=1?'disabled':'')+'>حذف</button>';const inp=row.querySelector('input');inp.onchange=()=>renameSection(i,inp.value);row.querySelector('button').onclick=()=>deleteSection(i);box.appendChild(row);}
         }
-
-        let currentView = 'home';
-        let selectedSection = 1;
-        let isEditMode = !!window.IS_ADMIN;
-        let isSyncingFromFirebase = false; // علم لمنع recursion
-        let lastLocalSave = 0; // طابع زمني لآخر حفظ محلي
-
-        // تحميل الإعدادات من localStorage
-        function loadUserSettings() {
-            try {
-                const stored = localStorage.getItem('userSettings');
-                return stored ? JSON.parse(stored) : DEFAULT_SETTINGS;
-            } catch (e) {
-                return DEFAULT_SETTINGS;
-            }
+        function renameSection(i,n){if(!window.IS_OWNER)return;n=(n||'').trim();if(!n)return;appData.sectionNames[i-1]=n;saveData();render();}
+        function addNewSection(){if(!window.IS_OWNER)return;appData.sections+=1;appData.sectionNames=appData.sectionNames||[];appData.sectionNames.push(`شعبة ${appData.sections}`);['progress','assignments','exams','liveLinks','recordings','recordingsLinks','teachers','groupLinks'].forEach(k=>{appData[k]=appData[k]||{};appData[k][appData.sections]=k==='assignments'||k==='exams'||k==='recordings'?[]:{};});saveData();render();}
+        function deleteSection(i){if(!window.IS_OWNER)return;if(appData.sections<=1)return;if(!confirm('حذف '+getSectionLabel(i)+'؟ سيتم حذف بياناتها أيضاً.'))return;['progress','assignments','exams','liveLinks','recordings','recordingsLinks','teachers','groupLinks'].forEach(k=>{if(appData[k])delete appData[k][i];});appData.sections--;appData.sectionNames.splice(i-1,1);if(selectedSection>appData.sections)selectedSection=appData.sections;saveData();render();}
+        function renderKnownAccounts(){
+            const box=document.getElementById('known-accounts-list');if(!box||!window.IS_OWNER||!db)return;
+            Promise.all([db.ref('loginDirectory').once('value'),db.ref('adminUsers').once('value')]).then(([a,b])=>{const known=[];a.forEach(c=>known.push({uid:c.key,...(c.val()||{})}));const admins=b.val()||{};if(!known.length){box.innerHTML='<div class="notice">سيظهر الحساب هنا بعد أول محاولة دخول من /admin/.</div>';return;}box.innerHTML='';known.sort((x,y)=>String(x.email||'').localeCompare(String(y.email||''))).forEach(u=>{const row=document.createElement('div');row.className='management-row account-row';const is=!!admins[u.uid],isSelf=(window.AUTH_USER&&u.uid===window.AUTH_USER.uid);row.innerHTML='<div><strong>'+escapeHtml(u.displayName||'حساب Google')+'</strong><small>'+escapeHtml(u.email||'')+'</small></div><button class="btn-sm '+(isSelf?'btn-link':(is?'btn-delete':'btn-add'))+'" '+(isSelf?'disabled':'')+'>'+ (isSelf?'المالك':(is?'سحب الصلاحية':'منح الصلاحية')) +'</button>';if(!isSelf)row.querySelector('button').onclick=()=>is?revokeAdmin(u.uid):grantAdmin(u.uid);box.appendChild(row);});}).catch(()=>box.innerHTML='<div class="notice">تعذر تحميل الحسابات حالياً.</div>');
         }
-
-        // حفظ الإعدادات في localStorage
-        function saveUserSettings(settings) {
-            try {
-                localStorage.setItem('userSettings', JSON.stringify(settings));
-                console.log('✅ إعدادات المستخدم محفوظة:', settings);
-            } catch (e) {
-                console.warn('خطأ في حفظ الإعدادات:', e);
-            }
-        }
-
-        // --- استبدال دوال الحفظ والتحميل بـ Firebase ---
-        // حفظ البيانات في Firebase
-        function saveData() {
-            if (!window.IS_ADMIN) { return false; }
-            // ضع طابعًا زمنيًا لتمييز الحفظ المحلي عن تحديثات المزامنة
-            appData.__updated = Date.now();
-            lastLocalSave = appData.__updated;
-            
-            // حفظ محلي كنسخة احتياطية
-            try {
-                localStorage.setItem('collegeAppData', JSON.stringify(appData));
-                console.log('💾 Data saved locally');
-            } catch(e) {
-                console.error('❌ Error saving to localStorage:', e);
-            }
-            
-            // محاولة حفظ في Firebase
-            if(db && db.ref) {
-                const prepared = prepareAppDataForFirebase(appData);
-                try { console.log('📌 Current in-memory subjects before send:', appData.subjects); } catch(e) {}
-                // mark that we're syncing/writing to Firebase to avoid reacting to the resulting 'value' event
-                isSyncingFromFirebase = true;
-                try {
-                    console.log('🔁 Prepared payload for Firebase:', {
-                        subjects: prepared.subjects,
-                        __updated: prepared.__updated,
-                        sections: prepared.sections,
-                        // show a summary of progress keys per section
-                        progressSummary: (() => {
-                            const s = {};
-                            for (let i = 1; i <= (prepared.sections || 0); i++) {
-                                if (Array.isArray(prepared.progress[i])) s[i] = prepared.progress[i].map(x => x.subject).slice(0,10);
-                            }
-                            return s;
-                        })()
-                    });
-                } catch(e) { console.warn('Could not log prepared payload', e); }
-
-                db.ref('appData').set(prepared, (error) => {
-                    // done writing -> stop ignoring incoming snapshots
-                    isSyncingFromFirebase = false;
-                    if (error) {
-                        console.error('❌ Error saving to Firebase:', error);
-                        console.log('✅ But data is saved locally in localStorage');
-                    } else {
-                        console.log('☁️ Data saved to Firebase');
-                    }
-                });
-            } else {
-                console.warn('⚠️ Firebase not initialized, data saved locally only');
-            }
-        }
-
-        // Restore Firebase-stored format back to in-memory shape (arrays -> objects keyed by subject)
-        function restoreAppDataFromFirebase(src) {
-            try {
-                const data = JSON.parse(JSON.stringify(src || {}));
-                const sections = data.sections || 0;
-                data.progress = data.progress || {};
-                data.liveLinks = data.liveLinks || {};
-                data.recordingsLinks = data.recordingsLinks || {};
-                for (let i = 1; i <= sections; i++) {
-                    // progress: if it's an array, convert back to object
-                    if (Array.isArray(data.progress[i])) {
-                        const obj = {};
-                        data.progress[i].forEach(item => {
-                            if (item && item.subject) obj[item.subject] = item.value || {};
-                        });
-                        data.progress[i] = obj;
-                    }
-                    // liveLinks: array -> object
-                    if (Array.isArray(data.liveLinks[i])) {
-                        const obj = {};
-                        data.liveLinks[i].forEach(item => {
-                            if (item && item.subject) obj[item.subject] = item.value || { link: '', from: '', to: '' };
-                        });
-                        data.liveLinks[i] = obj;
-                    }
-                    // recordingsLinks: array -> object
-                    if (Array.isArray(data.recordingsLinks[i])) {
-                        const obj = {};
-                        data.recordingsLinks[i].forEach(item => {
-                            if (item && item.subject) obj[item.subject] = item.value || '';
-                        });
-                        data.recordingsLinks[i] = obj;
-                    }
-                }
-                return data;
-            } catch (e) {
-                console.warn('restoreAppDataFromFirebase failed, returning original', e);
-                return src;
-            }
-        }
-
-        // تحميل البيانات من Firebase عند أي تغيير
-        if(db && db.ref) {
-            db.ref('appData').on('value', (snapshot) => {
-                isSyncingFromFirebase = true;
-                        if (snapshot.exists()) {
-                            const raw = snapshot.val();
-                            const data = restoreAppDataFromFirebase(raw);
-                            console.log('📥 Data loaded from Firebase (restored): __updated=', data.__updated, 'lastLocalSave=', lastLocalSave);
-                            // Ignore older snapshots coming from Firebase that are older than our last local save
-                            if (data.__updated && lastLocalSave && data.__updated < lastLocalSave) {
-                                console.info('Ignoring older Firebase snapshot:', data.__updated, '<', lastLocalSave);
-                                isSyncingFromFirebase = false;
-                                return;
-                            }
-                            // If the snapshot equals our last local save, accept it but avoid extra actions
-                            if (data.__updated && data.__updated === lastLocalSave) {
-                                appData = normalizeAppData(data);
-                                render();
-                                isSyncingFromFirebase = false;
-                                return;
-                            }
-                            appData = normalizeAppData(data);
-                } else {
-                    // إذا لم توجد بيانات، استخدم البيانات الافتراضية
-                    console.log('⚠️ No data in Firebase, using default data');
-                    appData = normalizeAppData(defaultData);
-                    saveData();
-                }
-                render();
-                isSyncingFromFirebase = false;
-            }, (error) => {
-                console.error('❌ Error loading data from Firebase:', error);
-                // Use local storage as fallback
-                console.log('📦 Using localStorage as fallback');
-                appData = normalizeAppData(JSON.parse(localStorage.getItem('collegeAppData')) || defaultData);
-                render();
-            });
-
-            // عند أول تحميل للصفحة، إذا لم توجد بيانات في Firebase، احفظ البيانات الافتراضية
-            db.ref('appData').once('value').then((snapshot) => {
-                if (!snapshot.exists() && window.IS_ADMIN) {
-                    console.log('💾 Initializing Firebase with default data');
-                    db.ref('appData').set(prepareAppDataForFirebase(defaultData));
-                }
-            }).catch((error) => {
-                console.error('❌ Error checking Firebase:', error);
-            });
-        } else {
-            console.warn('⚠️ Firebase not initialized, loading from localStorage only');
-            appData = normalizeAppData(JSON.parse(localStorage.getItem('collegeAppData')) || defaultData);
-            // Will not auto-sync from Firebase until it's initialized
-        }
-
-        function requestEditMode() {
-            // Editing is no longer toggled on the visitor site.
-            if (window.IS_ADMIN) toggleEditMode(true);
-        }
-        function closeLoginModal() {
-            const el = document.getElementById('loginModal');
-            if (el) el.style.display = 'none';
-        }
-        function checkLogin(e) {
-            if(e && e.preventDefault) e.preventDefault();
-            return false;
-        }
-        function toggleEditMode(enable) {
-            isEditMode = !!window.IS_ADMIN && !!enable;
-            document.body.classList.toggle('edit-mode', isEditMode);
-            render();
-        }
-
-        // --- Manage Subjects Modal (admin only) ---
-        function openManageSubjects() {
-            // create modal if not exists
-            if(!document.getElementById('manageSubjectsModal')) {
-                const modal = document.createElement('div');
-                modal.id = 'manageSubjectsModal';
-                modal.className = 'modal-overlay';
-                modal.innerHTML = `
-                    <div class="modal-box">
-                        <h3>إدارة المواد العامة</h3>
-                        <div id="manage-subjects-list" style="max-height:300px; overflow:auto; text-align:right; margin-bottom:10px;"></div>
-                        <input type="text" id="new-global-subject" class="modal-input" placeholder="أضف مادة جديدة (مثلاً: الرياضيات)">
-                        <div style="display:flex; gap:8px; margin-top:10px;">
-                            <button class="btn-cancel" onclick="closeManageSubjects()">إلغاء</button>
-                            <button class="btn-login" onclick="addGlobalSubject()">إضافة وحفظ</button>
-                        </div>
-                    </div>
-                `;
-                document.body.appendChild(modal);
-            }
-            renderManageSubjects();
-            document.getElementById('manageSubjectsModal').style.display = 'flex';
-        }
-
-        function closeManageSubjects() {
-            const m = document.getElementById('manageSubjectsModal');
-            if(m) m.style.display = 'none';
-        }
-
-        function renderManageSubjects() {
-            const container = document.getElementById('manage-subjects-list');
-            if(!container) return;
-            const list = getSubjectsList();
-            container.innerHTML = '';
-            list.forEach((s, idx) => {
-                const row = document.createElement('div');
-                row.style.display = 'flex'; row.style.gap = '8px'; row.style.marginBottom = '8px'; row.style.alignItems = 'center';
-                row.innerHTML = `
-                    <input type="text" value="${s}" data-idx="${idx}" class="modal-input" style="flex:1;" onchange="updateGlobalSubject(${idx}, this.value)">
-                    <button class="btn-sm btn-delete" onclick="deleteGlobalSubject(${idx})">حذف</button>
-                `;
-                container.appendChild(row);
-            });
-        }
-
-        function addGlobalSubject() {
-            const input = document.getElementById('new-global-subject');
-            if(!input) return;
-            const v = (input.value || '').trim();
-            if(!v) return alert('ادخل اسم المادة');
-            // append to appData.subjects (avoid duplicates)
-            const list = getSubjectsList();
-            if(list.includes(v)) return alert('المادة موجودة مسبقاً');
-            // push into appData.subjects array directly
-            if(!Array.isArray(appData.subjects)) appData.subjects = [];
-            appData.subjects.push(v);
-            saveData();
-            input.value = '';
-            renderManageSubjects();
-            render();
-        }
-
-        function updateGlobalSubject(idx, newVal) {
-            const v = (newVal || '').trim();
-            const list = getSubjectsList();
-            if(!v) return renderManageSubjects();
-            // replace by rebuilding appData.subjects to reflect edited list
-            // Start from cleaned list and apply change
-            const cleaned = getSubjectsList();
-            cleaned[idx] = v;
-            // assign cleaned into appData.subjects
-            appData.subjects = cleaned.slice();
-            saveData();
-            render();
-        }
-
-        function deleteGlobalSubject(idx) {
-            const cleaned = getSubjectsList();
-            if(!confirm('هل تريد حذف المادة نهائياً من القائمة العامة؟')) return;
-            const removed = cleaned.splice(idx,1);
-            appData.subjects = cleaned.slice();
-            // Also remove from per-section progress/liveLinks
-            for(let i=1;i<=appData.sections;i++){
-                if(appData.progress && appData.progress[i]) delete appData.progress[i][removed[0]];
-                if(appData.liveLinks && appData.liveLinks[i]) delete appData.liveLinks[i][removed[0]];
-            }
-            saveData();
-            renderManageSubjects();
-            render();
-        }
+        function grantAdmin(uid){if(!window.IS_OWNER||!db)return;db.ref('loginDirectory/'+uid).once('value').then(s=>{if(!s.exists())return;const v=s.val();return db.ref('adminUsers/'+uid).set({email:v.email||'',displayName:v.displayName||'',addedAt:firebase.database.ServerValue.TIMESTAMP});}).then(renderKnownAccounts);}
+        function revokeAdmin(uid){if(!window.IS_OWNER||!db)return;if(!confirm('سحب صلاحية هذا الحساب؟'))return;db.ref('adminUsers/'+uid).remove().then(renderKnownAccounts);}
+        function grantAdminByEmail(){if(!window.IS_OWNER||!db)return;const input=document.getElementById('admin-email-search'),email=((input&&input.value)||'').trim().toLowerCase();if(!email)return;db.ref('loginDirectory').once('value').then(s=>{let found=null;s.forEach(c=>{const v=c.val()||{};if(String(v.email||'').toLowerCase()===email)found={uid:c.key,...v};});if(!found){alert('الحساب يجب أن يحاول الدخول إلى /admin/ مرة واحدة أولاً.');return;}return db.ref('adminUsers/'+found.uid).set({email:found.email||email,displayName:found.displayName||'',addedAt:firebase.database.ServerValue.TIMESTAMP});}).then(()=>{if(input)input.value='';renderKnownAccounts();});}
 
         // --- NAVIGATION ---
 
@@ -801,7 +382,10 @@ if (userSettings && userSettings.colorScheme === 'luxury') {
             if(currentView === 'important-links') renderImportantLinks();
             if(currentView === 'settings') renderSettings();
             if(currentView === 'about-team') renderTeam();
+            hideEmptyPublicActions();
         }
+        function hideEmptyPublicActions(){if(window.IS_ADMIN)return;document.querySelectorAll('.content-area a').forEach(a=>{const h=(a.getAttribute('href')||'').trim();if(!h||h==='#'||h.toLowerCase()==='javascript:void(0)')a.style.display='none';});document.querySelectorAll('.content-area .optional-action[data-empty="true"]').forEach(e=>e.style.display='none');}
+
 
         function renderDate() {
             const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
@@ -820,7 +404,7 @@ if (userSettings && userSettings.colorScheme === 'luxury') {
                 for(let i=1; i<=appData.sections; i++) {
                     const btn = document.createElement('button');
                     btn.className = `sec-btn ${selectedSection === i ? 'active' : ''}`;
-                    btn.innerText = `شعبة ${i}`;
+                    btn.innerText = getSectionLabel(i);
                     btn.onclick = () => setSection(i);
                     container.appendChild(btn);
                 }
@@ -1646,7 +1230,7 @@ if (userSettings && userSettings.colorScheme === 'luxury') {
                             <input class="editable-field editable-input" value="${item.role}" onchange="updateSupport(${index}, 'role', this.value)">
                         </div>
                         <div style="text-align:left;">
-                            <a href="https://wa.me/${item.phone}" class="btn-link editable-value">تواصل</a>
+                            ${item.phone ? `<a href="https://wa.me/${item.phone}" class="btn-link editable-value">تواصل</a>` : ``}
                             <input class="editable-field editable-input" value="${item.phone}" onchange="updateSupport(${index}, 'phone', this.value)">
                         </div>
                     </div>
@@ -1684,7 +1268,7 @@ if (userSettings && userSettings.colorScheme === 'luxury') {
                             <h3 class="editable-value">${item.title}</h3>
                             <input class="editable-field editable-input" value="${item.title}" onchange="updateSummary(${index}, 'title', this.value)">
                         </div>
-                        <a href="${item.link}" target="_blank" class="btn-link editable-value">تحميل ⬇️</a>
+                        ${item.link ? `<a href="${item.link}" target="_blank" class="btn-link editable-value">تحميل ⬇️</a>` : ``}
                     </div>
                     <div class="editable-field">
                         <input class="editable-input" value="${item.link}" placeholder="رابط الملف" onchange="updateSummary(${index}, 'link', this.value)">
@@ -1730,56 +1314,22 @@ if (userSettings && userSettings.colorScheme === 'luxury') {
         }
 
 
-        const WEEK_DAYS_AR = [
-            ['Saturday','السبت'],['Sunday','الأحد'],['Monday','الاثنين'],['Tuesday','الثلاثاء'],['Wednesday','الأربعاء'],['Thursday','الخميس'],['Friday','الجمعة']
-        ];
-        function currentWeekDayKey(){
-            return ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date().getDay()];
-        }
-        function getEffectiveLiveLinks(){
-            const today = currentWeekDayKey();
-            const direct = (appData.liveLinks && appData.liveLinks[selectedSection]) || {};
-            if(Object.keys(direct).length) return {links:direct, source:'today'};
-            if(appData.weeklyScheduleEnabled){
-                const fallback = (appData.weeklySchedule && appData.weeklySchedule[today]) || {};
-                if(Object.keys(fallback).length) return {links:fallback, source:'weekly'};
-            }
-            return {links:direct, source:'none'};
-        }
-        function effectiveSourceLabel(source){ return source==='weekly' ? 'روابط اليوم مأخوذة تلقائياً من الجدول الأسبوعي لأن روابط اليوم المباشرة غير موجودة.' : source==='today' ? 'هذه هي روابط الحصص المحددة لليوم.' : ''; }
-
+        const WEEK_DAYS_AR=[['Saturday','السبت'],['Sunday','الأحد'],['Monday','الاثنين'],['Tuesday','الثلاثاء'],['Wednesday','الأربعاء'],['Thursday','الخميس'],['Friday','الجمعة']];
+        function currentWeekDayKey(){return ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date().getDay()];}
+        function ensureWeeklyModel(){appData.weeklySchedule=appData.weeklySchedule||{};WEEK_DAYS_AR.forEach(([d])=>{appData.weeklySchedule[d]=appData.weeklySchedule[d]||{};for(let i=1;i<=appData.sections;i++){const cur=appData.weeklySchedule[d][i];if(Array.isArray(cur))continue;const arr=[];if(cur&&typeof cur==='object')Object.entries(cur).forEach(([subject,e])=>arr.push({id:Date.now()+Math.random(),subject,teacher:'',from:e?.from||'',to:e?.to||'',link:e?.link||'',note:e?.note||''}));appData.weeklySchedule[d][i]=arr;}});}
+        function getWeeklyEntries(day,sec){ensureWeeklyModel();return appData.weeklySchedule?.[day]?.[sec]||[];}
+        function getEffectiveLiveLinks(){const today=currentWeekDayKey();const direct=(appData.liveLinks&&appData.liveLinks[selectedSection])||{};if(Object.keys(direct).length)return{links:direct,source:'today'};if(appData.weeklyScheduleEnabled){const links={};getWeeklyEntries(today,selectedSection).forEach(e=>{if(e&&e.subject)links[e.subject]={link:e.link||'',from:e.from||'',to:e.to||'',note:e.note||'',teacher:e.teacher||''};});if(Object.keys(links).length)return{links,source:'weekly'};}return{links:{},source:'none'};}
+        function effectiveSourceLabel(s){return s==='weekly'?'تم تحميل حصص اليوم من الجدول الأسبوعي تلقائياً.':s==='today'?'هذه هي الحصص المباشرة التي أدخلها المدير لهذا اليوم.':'';}
         function renderWeeklySchedule(){
-            const box = document.getElementById('weekly-schedule-list');
-            if(!box) return;
-            box.innerHTML = '';
-            const enabled = !!appData.weeklyScheduleEnabled;
-            box.insertAdjacentHTML('beforebegin', `<div class="notice" style="padding:12px 14px;margin-bottom:14px;"><strong>${enabled?'الجدول الأسبوعي مفعّل':'الجدول الأسبوعي متوقف'}</strong> — عند عدم وجود روابط مباشرة لليوم، ستُستخدم روابط هذا اليوم من الجدول الأسبوعي تلقائياً.</div>`);
-            const schedule = appData.weeklySchedule || {};
-            WEEK_DAYS_AR.forEach(([key,ar])=>{
-                const rows = schedule[key] || {};
-                const day = document.createElement('div'); day.className='weekly-day';
-                const entries = Object.keys(rows);
-                day.innerHTML = `<h4>${ar}</h4><small>${entries.length?`عدد الحصص: ${entries.length}`:'لا توجد حصص محفوظة'}</small>`;
-                if(window.IS_ADMIN){
-                    const wrap=document.createElement('div'); wrap.className='editable-field'; wrap.style.marginTop='12px';
-                    entries.forEach(sub=>{ const e=rows[sub]||{}; const row=document.createElement('div'); row.style.cssText='padding:10px 0;border-top:1px solid #eee;'; row.innerHTML=`<input class="editable-input" value="${String(sub).replace(/&/g,'&amp;').replace(/"/g,'&quot;')}" style="margin-bottom:7px"><input class="editable-input" value="${String(e.link||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;')}" placeholder="رابط الحصة"><div style="display:flex;gap:7px;margin-top:7px"><input type="time" class="editable-input" value="${e.from||''}"><input type="time" class="editable-input" value="${e.to||''}"></div><button class="btn-sm btn-delete" style="margin-top:7px">حذف</button>`;
-                        const [name,link,from,to]=row.querySelectorAll('input');
-                        name.onchange=()=>{ weeklyRename(key,sub,name.value); }; link.onchange=()=>weeklyUpdate(key,name.value,'link',link.value); from.onchange=()=>weeklyUpdate(key,name.value,'from',from.value); to.onchange=()=>weeklyUpdate(key,name.value,'to',to.value); row.querySelector('button').onclick=()=>weeklyDelete(key,name.value); wrap.appendChild(row); });
-                    const add=document.createElement('div'); add.innerHTML=`<div style="border-top:1px solid #eee;padding-top:10px"><input class="editable-input" placeholder="اسم المادة" style="margin-bottom:7px"><input class="editable-input" placeholder="رابط الحصة"><div style="display:flex;gap:7px;margin-top:7px"><input type="time" class="editable-input"><input type="time" class="editable-input"></div><button class="btn-sm btn-add" style="margin-top:8px">إضافة</button></div>`;
-                    const ins=add.querySelectorAll('input'); add.querySelector('button').onclick=()=>weeklyAdd(key,ins[0].value,ins[1].value,ins[2].value,ins[3].value); wrap.appendChild(add); day.appendChild(wrap);
-                }
-                box.appendChild(day);
-            });
-            const toggle=document.getElementById('weekly-enabled-toggle'); if(toggle){toggle.checked=enabled;}
+            const box=document.getElementById('weekly-schedule-list');if(!box)return;ensureWeeklyModel();const day=((document.getElementById('weekly-day-select')||{}).value)||currentWeekDayKey();const sec=Number(((document.getElementById('weekly-section-select')||{}).value)||selectedSection);const entries=getWeeklyEntries(day,sec);box.innerHTML='';
+            const toolbar=document.createElement('div');toolbar.className='schedule-toolbar';toolbar.innerHTML='<div><label>اليوم</label><select id="weekly-day-select" class="editable-input">'+WEEK_DAYS_AR.map(x=>'<option value="'+x[0]+'" '+(day===x[0]?'selected':'')+'>'+x[1]+'</option>').join('')+'</select></div><div><label>الشعبة</label><select id="weekly-section-select" class="editable-input">'+Array.from({length:appData.sections},(_,i)=>'<option value="'+(i+1)+'" '+(sec===i+1?'selected':'')+'>'+escapeHtml(getSectionLabel(i+1))+'</option>').join('')+'</select></div><label class="admin-check"><input id="weekly-enabled-toggle" type="checkbox" '+(appData.weeklyScheduleEnabled?'checked':'')+'> استخدام الجدول تلقائياً</label>';
+            box.appendChild(toolbar);toolbar.querySelector('#weekly-day-select').onchange=renderWeeklySchedule;toolbar.querySelector('#weekly-section-select').onchange=renderWeeklySchedule;toolbar.querySelector('#weekly-enabled-toggle').onchange=e=>toggleWeeklySchedule(e.target.checked);
+            const note=document.createElement('div');note.className='notice';note.textContent='القائمة تتكرر أسبوعياً بحسب اليوم والشعبة، ويمكنك وضع أكثر من حصة في اليوم نفسه.';box.appendChild(note);
+            const list=document.createElement('div');list.className='schedule-list';entries.forEach((e,i)=>{const row=document.createElement('div');row.className='schedule-row';row.innerHTML='<div class="schedule-index">'+(i+1)+'</div><div><div class="schedule-grid-fields"><input class="editable-input" value="'+escapeHtml(e.subject||'')+'" placeholder="المادة"><input class="editable-input" value="'+escapeHtml(e.teacher||'')+'" placeholder="المعلم (اختياري)"><input type="time" class="editable-input" value="'+(e.from||'')+'"><input type="time" class="editable-input" value="'+(e.to||'')+'"><input class="editable-input full" value="'+escapeHtml(e.link||'')+'" placeholder="رابط الحصة (اختياري)"><input class="editable-input full" value="'+escapeHtml(e.note||'')+'" placeholder="ملاحظة (اختياري)"></div><div class="schedule-actions"><button class="btn-sm btn-add">حفظ</button><button class="btn-sm btn-delete">حذف</button></div></div>';const inp=row.querySelectorAll('input');row.querySelector('.btn-add').onclick=()=>{e.subject=inp[0].value.trim();e.teacher=inp[1].value.trim();e.from=inp[2].value;e.to=inp[3].value;e.link=inp[4].value.trim();e.note=inp[5].value.trim();saveData();renderWeeklySchedule();};row.querySelector('.btn-delete').onclick=()=>{entries.splice(i,1);saveData();renderWeeklySchedule();};list.appendChild(row);});
+            const add=document.createElement('div');add.className='schedule-add';add.innerHTML='<h4>إضافة حصة إلى '+escapeHtml(getSectionLabel(sec))+' — '+escapeHtml((WEEK_DAYS_AR.find(x=>x[0]===day)||['',day])[1])+'</h4><div class="schedule-grid-fields"><input id="ws-subject" class="editable-input" placeholder="المادة"><input id="ws-teacher" class="editable-input" placeholder="المعلم (اختياري)"><input id="ws-from" type="time" class="editable-input"><input id="ws-to" type="time" class="editable-input"><input id="ws-link" class="editable-input full" placeholder="رابط الحصة (اختياري)"><input id="ws-note" class="editable-input full" placeholder="ملاحظة (اختياري)"></div><button class="btn-add btn-sm" onclick="weeklyAddNew()">+ إضافة الحصة</button>';list.appendChild(add);box.appendChild(list);
         }
-        function weeklyAdd(day,subject,link,from,to){
-            if(!window.IS_ADMIN) return; subject=(subject||'').trim(); if(!subject)return alert('اكتب اسم المادة'); appData.weeklySchedule=appData.weeklySchedule||{}; appData.weeklySchedule[day]=appData.weeklySchedule[day]||{}; appData.weeklySchedule[day][subject]={link:(link||'').trim(),from:from||'',to:to||''}; saveData(); render();
-        }
-        function weeklyUpdate(day,subject,key,value){if(!window.IS_ADMIN)return; appData.weeklySchedule[day]=appData.weeklySchedule[day]||{}; appData.weeklySchedule[day][subject]=appData.weeklySchedule[day][subject]||{}; appData.weeklySchedule[day][subject][key]=value; saveData(); render();}
-        function weeklyRename(day,oldName,newName){if(!window.IS_ADMIN)return; newName=(newName||'').trim(); if(!newName)return; if(newName===oldName)return; const e=appData.weeklySchedule[day]&&appData.weeklySchedule[day][oldName]; if(!e)return; appData.weeklySchedule[day][newName]=e; delete appData.weeklySchedule[day][oldName]; saveData(); render();}
-        function weeklyDelete(day,subject){if(!window.IS_ADMIN)return; delete appData.weeklySchedule[day][subject]; saveData(); render();}
-        function toggleWeeklySchedule(enabled){if(!window.IS_ADMIN)return; appData.weeklyScheduleEnabled=!!enabled; saveData(); render();}
-
+        function weeklyAddNew(){if(!window.IS_ADMIN)return;const item={id:Date.now(),subject:(document.getElementById('ws-subject').value||'').trim(),teacher:(document.getElementById('ws-teacher').value||'').trim(),from:document.getElementById('ws-from').value,to:document.getElementById('ws-to').value,link:(document.getElementById('ws-link').value||'').trim(),note:(document.getElementById('ws-note').value||'').trim()};if(!item.subject)return alert('اكتب اسم المادة أولاً.');const day=document.getElementById('weekly-day-select').value,sec=Number(document.getElementById('weekly-section-select').value);getWeeklyEntries(day,sec).push(item);saveData();renderWeeklySchedule();}
+        function toggleWeeklySchedule(v){if(!window.IS_ADMIN)return;appData.weeklyScheduleEnabled=!!v;saveData();renderWeeklySchedule();}
         function renderLiveLinks() {
             const container = document.getElementById('live-list');
             container.innerHTML = '';
@@ -2208,7 +1758,7 @@ if (userSettings && userSettings.colorScheme === 'luxury') {
                             <h3 class="editable-value">${item.title}</h3>
                             <input class="editable-field editable-input" value="${item.title}" onchange="updateImportantLink(${index}, 'title', this.value)">
                         </div>
-                        <a href="${item.url}" target="_blank" class="btn-link editable-value">فتح الرابط ↗️</a>
+                        ${item.url ? `<a href="${item.url}" target="_blank" class="btn-link editable-value">فتح الرابط ↗️</a>` : ``}
                     </div>
                     <div class="editable-field">
                         <input class="editable-input" value="${item.url}" placeholder="الرابط" onchange="updateImportantLink(${index}, 'url', this.value)">
@@ -2306,7 +1856,7 @@ if (userSettings && userSettings.colorScheme === 'luxury') {
                             <h3 class="editable-value">${item.title}</h3>
                             <input class="editable-field editable-input" value="${item.title}" onchange="updateGroupLink(${index}, 'title', this.value)">
                         </div>
-                        <a href="${item.url}" target="_blank" class="btn-link editable-value">فتح الرابط ↗️</a>
+                        ${item.url ? `<a href="${item.url}" target="_blank" class="btn-link editable-value">فتح الرابط ↗️</a>` : ``}
                     </div>
                     <div class="editable-field">
                         <input class="editable-input" value="${item.url}" placeholder="الرابط" onchange="updateGroupLink(${index}, 'url', this.value)">
@@ -2332,16 +1882,17 @@ if (userSettings && userSettings.colorScheme === 'luxury') {
         function deleteGroupLink(index) { if(confirm('حذف هذا الرابط؟')) { appData.groupLinks[selectedSection].splice(index, 1); saveData(); render(); } }
 
         // --- SETTINGS FUNCTIONS ---
-        function renderSettings() {
-            // تحديث أزرار الخط والألوان
-            updateFontButtons();
-            updateColorSchemeButtons();
-        }
+        function renderSettings(){updateFontButtons();updateColorSchemeButtons();setFontScale(userSettings.fontScale||80);setLineHeight(userSettings.lineHeight||17);updateAppearanceStates();renderSectionManagement();if(window.IS_OWNER)renderKnownAccounts();}
 
         // --- TEAM FUNCTIONS ---
         function renderTeam() {
             const container = document.getElementById('team-list');
             container.innerHTML = '';
+            if(window.IS_ADMIN){
+                const preview=document.createElement('div');preview.className='team-font-preview';
+                preview.innerHTML='<small>معاينة الخط الحالي</small><strong style="font-family:var(--font-family)">المنارة الطلابية — فريق التطوير</strong>';
+                container.appendChild(preview);
+            }
             if(appData.team.length === 0) {
                 container.innerHTML = '<p style="color:var(--text-light); text-align:center;">لا يوجد أعضاء في الفريق حالياً</p>';
                 return;
@@ -2360,7 +1911,7 @@ if (userSettings && userSettings.colorScheme === 'luxury') {
                             <textarea class="editable-field editable-textarea" onchange="updateTeam(${index}, 'bio', this.value)" style="min-height: 50px; margin-top: 5px;">${member.bio || ''}</textarea>
                         </div>
                         <div style="text-align:left;">
-                            <a href="https://wa.me/${member.whatsapp}" target="_blank" class="btn-link editable-value">واتس</a>
+                            ${member.whatsapp ? `<a href="https://wa.me/${member.whatsapp}" target="_blank" class="btn-link editable-value">واتس</a>` : ``}
                             <input class="editable-field editable-input" value="${member.whatsapp}" placeholder="رقم الواتس" onchange="updateTeam(${index}, 'whatsapp', this.value)">
                         </div>
                     </div>
@@ -2606,7 +2157,7 @@ if (userSettings && userSettings.colorScheme === 'luxury') {
                 div.innerHTML = `
                     <div class="data-header">
                         <h3 class="editable-value">${item.title}</h3>
-                        <a href="${item.link}" target="_blank" class="btn-link editable-value">تحميل ⬇️</a>
+                        ${item.link ? `<a href="${item.link}" target="_blank" class="btn-link editable-value">تحميل ⬇️</a>` : ``}
                         <button class="btn-sm btn-delete" onclick="deleteBooksPackage(${index})">حذف</button>
                     </div>
                     <div class="editable-field">
@@ -2877,7 +2428,7 @@ if (userSettings && userSettings.colorScheme === 'luxury') {
                 if(isAppInstalled()) return;
                 if(deferredPrompt) showPrompt();
             });
-        })();
+        
+  Object.assign(window,{setFont,setColorScheme,setFontScale,setLineHeight,toggleHighContrast,toggleReducedMotion,toggleCompactMode,resetAppearanceSettings,showSection,goBack,setSection,openManageSubjects,addGlobalSubject,updateGlobalSubject,deleteGlobalSubject,addNewSection,renameSection,deleteSection,grantAdminByEmail,grantAdmin,revokeAdmin,renderKnownAccounts,toggleWeeklySchedule,weeklyAddNew,render});
+})();
     
-window.render=typeof render==='function'?render:null;
-window.showSection=typeof showSection==='function'?showSection:null;

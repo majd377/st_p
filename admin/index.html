@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#eef4f7">
-<meta name="description" content="منصة سِراج 2010 للحصص والواجبات والتسجيلات والاختبارات والملفات والروابط.">
+<meta name="description" content="المنارة الطلابية — بوابة تعليمية لطلاب دفعة 2010.">
 <meta property="og:locale" content="ar">
 <meta property="og:type" content="website">
-<meta property="og:title" content="سِراج 2010">
-<meta property="og:description" content="منارة تعليمية هادئة وواضحة لجيل 2010.">
-<link rel="icon" href="../لوجو.png">
-<link rel="apple-touch-icon" href="../لوجو.png">
+<meta property="og:title" content="المنارة الطلابية">
+<meta property="og:description" content="بوابة تعليمية عصرية ومنظمة لطلاب دفعة 2010.">
+<link rel="icon" href="../logo.png">
+<link rel="apple-touch-icon" href="../logo.png">
 <link rel="stylesheet" href="../assets/css/style.css">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -18,16 +18,11 @@
 <script src="../assets/js/firebase-config.js"></script>
 <script>window.APP_ROLE='admin';window.IS_ADMIN=false;window.AUTH_USER=null;</script>
 <script defer src="../assets/js/app.js"></script>
-</head> -->
-    
-    
-    <title>❄ سِراج 2010 || 𝟐𝟎𝟏𝟎 ❄</title>
-    
 </head>
 <body class="view-mode">
 <div id="admin-gate" class="auth-screen" style="position:fixed;inset:0;z-index:50000;">
   <div class="auth-card">
-    <img src="../لوجو.png" alt="" style="width:62px;height:62px;object-fit:cover;border-radius:16px;margin-bottom:14px">
+    <img src="../logo.png" alt="" style="width:62px;height:62px;object-fit:cover;border-radius:16px;margin-bottom:14px">
     <div class="admin-badge" style="display:inline-block;margin-bottom:10px">منطقة الإدارة</div>
     <h1 style="margin-bottom:8px">تسجيل الدخول</h1>
     <p style="color:var(--text-light);margin-bottom:18px">استخدم حساب Google المصرح له للوصول إلى أدوات الإدارة.</p>
@@ -40,8 +35,8 @@
     <!-- Splash Overlay -->
     <div id="splash-overlay" class="splash-overlay">
         <div class="splash-content">
-            <img src="../لوجو.png" id="splash-logo" class="splash-logo" alt="شعار">
-            <h1 id="splash-text">أهلاً بكم في سِراج 2010</h1>
+            <img src="../logo.png" id="splash-logo" class="splash-logo" alt="شعار">
+            <h1 id="splash-text">أهلاً بكم في المنارة الطلابية</h1>
         </div>
         <div id="splash-circle" class="splash-circle" aria-hidden="true"></div>
     </div>
@@ -49,7 +44,7 @@
 
     <nav class="sidebar" id="sidebar">
         <div class="logo">
-            <img src="../لوجو.png" class="site-logo" alt="شعار الموقع" style="width:28px; height:28px; object-fit:cover; margin-inline-end:8px; vertical-align:middle; border-radius:4px;">سِراج 2010 
+            <img src="../logo.png" class="site-logo" alt="شعار الموقع" style="width:28px; height:28px; object-fit:cover; margin-inline-end:8px; vertical-align:middle; border-radius:4px;">المنارة الطلابية 
         </div>
         <ul class="nav-links">
             <li class="nav-item active" onclick="showSection('home')">
@@ -61,7 +56,7 @@
                 روابط الحصص
             </li>
             <li class="nav-item admin-only" onclick="showSection('weekly-schedule')">🗓️ الجدول الأسبوعي</li>
-            <li class="nav-item admin-only" onclick="showSection('access-logs')">🔔 إشعارات الدخول</li>
+            <li class="nav-item admin-only owner-only-nav" onclick="showSection('access-logs')">🔔 إشعارات الدخول</li>
             <li class="nav-item" onclick="showSection('assignments')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
                 الواجبات
@@ -124,10 +119,10 @@
     <!-- PWA install banner (hidden by default) -->
     <div id="pwa-install-banner" style="display:none; position:fixed; left:16px; right:16px; bottom:18px; background:#fff; border-radius:10px; box-shadow:0 8px 20px rgba(0,0,0,0.08); padding:12px 14px; z-index:2000; direction:rtl; align-items:center; gap:10px;">
         <div style="display:flex; gap:10px; align-items:center;">
-            <img src="../لوجو.png" alt="icon" style="width:44px; height:44px; border-radius:8px; object-fit:cover;">
+            <img src="../logo.png" alt="icon" style="width:44px; height:44px; border-radius:8px; object-fit:cover;">
             <div style="text-align:right;">
                 <div style="font-weight:700;">تثبيت التطبيق</div>
-                <div style="color:var(--text-light); font-size:0.95rem;">يمكنك تثبيت منصة  " سِراج 2010 || 𝟐𝟎𝟏𝟎 " كتطبيق</div>
+                <div style="color:var(--text-light); font-size:0.95rem;">يمكنك تثبيت منصة " المنارة الطلابية " كتطبيق</div>
             </div>
         </div>
         <div style="margin-inline-start:auto; display:flex; gap:8px;">
@@ -538,7 +533,7 @@
         <div id="access-logs" class="content-area admin-only">
             <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()">⬅️ رجوع</button>
             <div class="data-card">
-              <div class="section-toolbar"><div><h2 style="color:var(--primary-color);margin:0">إشعارات الدخول</h2><p style="color:var(--text-light);margin:3px 0 0">محاولات الدخول إلى لوحة الإدارة.</p></div></div>
+              <div class="section-toolbar"><div><h2 style="color:var(--primary-color);margin:0">إشعارات الدخول</h2><p style="color:var(--text-light);margin:3px 0 0">الحسابات التي تم السماح لها بالدخول إلى لوحة الإدارة، وتُسجل أول مرة فقط.</p></div></div>
               <div id="access-logs-list"><div class="notice" style="padding:12px">جاري تحميل السجل...</div></div>
             </div>
         </div>
@@ -552,63 +547,33 @@
         </div>
 
         <div id="settings" class="content-area">
-            <div class="settings-hero">
-                <div>
-                    <span class="eyebrow">تخصيص التجربة</span>
-                    <h2>الإعدادات</h2>
-                    <p>خلّي سِراج 2010 على ذوقك: خط أوضح، حجم مناسب، لون هادئ، وكثافة مريحة للمحتوى.</p>
-                </div>
-                <button class="btn-link settings-reset" onclick="resetAppearanceSettings()">إرجاع الوضع العادي</button>
-            </div>
-
-            <div class="settings-layout">
-                <section class="settings-panel">
-                    <div class="settings-panel-head"><div><h3>الخط والقراءة</h3><p>اختَر ما يجعل القراءة أريح لك.</p></div><span>Aa</span></div>
-                    <div class="font-grid">
-                        <button onclick="setFont('default')" id="font-default-btn" class="font-choice-btn font-preview-default">الخط العادي<small>واضح ومتوازن</small></button>
-                        <button onclick="setFont('alatypoo')" id="font-alatypoo-btn" class="font-choice-btn font-preview-ala">عربي هادئ<small>AlaTypoo</small></button>
-                        <button onclick="setFont('dwnoutsh')" id="font-dwnoutsh-btn" class="font-choice-btn font-preview-dwn">خط ناعم<small>DWNOUTSH</small></button>
-                        <button onclick="setFont('kfxftout')" id="font-kfxftout-btn" class="font-choice-btn font-preview-kfx">خط رسمي<small>KFXFTOUT</small></button>
-                        <button onclick="setFont('ptbldbrk')" id="font-ptbldbrk-btn" class="font-choice-btn font-preview-pt">خط كلاسيكي<small>PTBLDBRK</small></button>
-                        <button onclick="setFont('aldhabi')" id="font-aldhabi-btn" class="font-choice-btn font-preview-aldhabi">خط عربي زخرفي<small>ALDHABI</small></button>
-                    </div>
-                    <div class="range-row">
-                        <div class="range-label"><strong>حجم الخط</strong><span id="font-size-value">100%</span></div>
-                        <input id="font-size-range" type="range" min="85" max="125" step="5" value="100" oninput="setFontScale(this.value)">
-                    </div>
-                    <div class="range-row">
-                        <div class="range-label"><strong>تباعد السطور</strong><span id="line-height-value">مريح</span></div>
-                        <input id="line-height-range" type="range" min="15" max="21" step="1" value="18" oninput="setLineHeight(this.value)">
-                    </div>
-                </section>
-
-                <section class="settings-panel">
-                    <div class="settings-panel-head"><div><h3>المظهر</h3><p>اختر الجو العام للموقع بدون إجهاد للعين.</p></div><span>◐</span></div>
-                    <div class="theme-grid">
-                        <button onclick="setColorScheme('ocean')" id="scheme-ocean-btn" class="theme-option theme-ocean"><b>نسمة البحر</b><small>أزرق هادئ</small></button>
-                        <button onclick="setColorScheme('sage')" id="scheme-sage-btn" class="theme-option theme-sage"><b>ورق الزيتون</b><small>أخضر مريح</small></button>
-                        <button onclick="setColorScheme('sand')" id="scheme-sand-btn" class="theme-option theme-sand"><b>دفء الورق</b><small>بيج دافئ</small></button>
-                        <button onclick="setColorScheme('rose')" id="scheme-rose-btn" class="theme-option theme-rose"><b>ورد هادئ</b><small>زهري ناعم</small></button>
-                    </div>
-                    <div class="appearance-switches">
-                        <button class="switch-card" onclick="toggleHighContrast()"><span><b>وضوح أعلى</b><small>يزيد وضوح النص والحدود</small></span><i id="contrast-state">○</i></button>
-                        <button class="switch-card" onclick="toggleReducedMotion()"><span><b>حركة أقل</b><small>يخفف الحركات والانتقالات</small></span><i id="motion-state">○</i></button>
-                        <button class="switch-card" onclick="toggleCompactMode()"><span><b>وضع مدمج</b><small>يقلل المسافات بين البطاقات</small></span><i id="compact-state">○</i></button>
-                    </div>
-                </section>
-
-                <section class="settings-panel settings-preview-panel">
-                    <div class="settings-panel-head"><div><h3>المعاينة</h3><p>هيك راح تشوف المحتوى بعد الاختيار.</p></div><span>✦</span></div>
-                    <div class="settings-preview-card">
-                        <div class="preview-icon">سِ</div>
-                        <div><strong>سِراج 2010</strong><p>واجهة هادئة، واضحة، ومصممة للقراءة السريعة.</p></div>
-                    </div>
-                    <div class="settings-tips"><div>✓ الإعدادات تُحفظ على جهازك تلقائياً</div><div>✓ ترجع للوضع العادي بزر واحد</div><div>✓ يمكنك تغييرها في أي وقت</div></div>
-                </section>
-            </div>
-        </div>
-
-        <div id="about-team" class="content-area">
+<div class="settings-top"><div><span class="eyebrow">تخصيص شخصي</span><h2>الإعدادات</h2><p>غيّر شكل القراءة والمظهر بالطريقة التي تناسبك، والتغييرات تُحفظ تلقائياً على هذا الجهاز.</p></div><button class="btn-link settings-reset" onclick="resetAppearanceSettings()">إرجاع الوضع العادي</button></div>
+<div class="settings-grid">
+<section class="settings-panel settings-wide"><div class="settings-panel-head"><div><h3>الخط والقراءة</h3><p>كل خيار معروض بخطه الحقيقي لتعرف شكله قبل اختياره.</p></div><span class="settings-symbol">Aa</span></div>
+<div class="font-grid font-grid-real-preview">
+<button onclick="setFont('default')" id="font-default-btn" class="font-choice-btn" style="font-family:Segoe UI,Arial,sans-serif"><strong>الخط العادي</strong><small>المنارة الطلابية</small></button>
+<button onclick="setFont('alatypoo')" id="font-alatypoo-btn" class="font-choice-btn" style="font-family:'AlaTypoo',sans-serif"><strong>عربي هادئ</strong><small style="font-family:'AlaTypoo',sans-serif">المنارة الطلابية</small></button>
+<button onclick="setFont('dwnoutsh')" id="font-dwnoutsh-btn" class="font-choice-btn" style="font-family:'DWNOUTSH',sans-serif"><strong>خط ناعم</strong><small style="font-family:'DWNOUTSH',sans-serif">المنارة الطلابية</small></button>
+<button onclick="setFont('kfxftout')" id="font-kfxftout-btn" class="font-choice-btn" style="font-family:'KFXFTOUT',sans-serif"><strong>خط رسمي</strong><small style="font-family:'KFXFTOUT',sans-serif">المنارة الطلابية</small></button>
+<button onclick="setFont('ptbldbrk')" id="font-ptbldbrk-btn" class="font-choice-btn" style="font-family:'PTBLDBRK',sans-serif"><strong>خط كلاسيكي</strong><small style="font-family:'PTBLDBRK',sans-serif">المنارة الطلابية</small></button>
+<button onclick="setFont('aldhabi')" id="font-aldhabi-btn" class="font-choice-btn" style="font-family:'ALDHABI',sans-serif"><strong>خط عربي زخرفي</strong><small style="font-family:'ALDHABI',sans-serif">المنارة الطلابية</small></button>
+</div>
+<div class="range-row"><div class="range-label"><strong>حجم الخط</strong><span id="font-size-value">80%</span></div><input id="font-size-range" type="range" min="80" max="120" step="5" value="80" oninput="setFontScale(this.value)"></div>
+<div class="range-row"><div class="range-label"><strong>تباعد السطور</strong><span id="line-height-value">1.7×</span></div><input id="line-height-range" type="range" min="15" max="22" step="1" value="17" oninput="setLineHeight(this.value)"></div>
+</section>
+<section class="settings-panel"><div class="settings-panel-head"><div><h3>المظهر</h3><p>معاينة لونية مباشرة.</p></div><span class="settings-symbol">◐</span></div>
+<div class="theme-grid theme-preview-grid">
+<button onclick="setColorScheme('ocean')" id="scheme-ocean-btn" class="theme-option"><span class="theme-swatch ocean"></span><b>نسمة البحر</b><small>لون حي داخل الخانة</small></button>
+<button onclick="setColorScheme('sage')" id="scheme-sage-btn" class="theme-option"><span class="theme-swatch sage"></span><b>ورق الزيتون</b><small>لون حي داخل الخانة</small></button>
+<button onclick="setColorScheme('sand')" id="scheme-sand-btn" class="theme-option"><span class="theme-swatch sand"></span><b>دفء الورق</b><small>لون حي داخل الخانة</small></button>
+<button onclick="setColorScheme('rose')" id="scheme-rose-btn" class="theme-option"><span class="theme-swatch rose"></span><b>ورد هادئ</b><small>لون حي داخل الخانة</small></button>
+</div>
+<div class="appearance-switches"><button class="switch-card" onclick="toggleHighContrast()"><span><b>وضوح أعلى</b><small>نص وحدود أوضح</small></span><i id="contrast-state">○</i></button><button class="switch-card" onclick="toggleReducedMotion()"><span><b>حركة أقل</b><small>انتقالات أخف</small></span><i id="motion-state">○</i></button><button class="switch-card" onclick="toggleCompactMode()"><span><b>وضع مدمج</b><small>مسافات أقل</small></span><i id="compact-state">○</i></button></div>
+</section>
+<section class="settings-panel owner-only-panel"><div class="settings-panel-head"><div><h3>إدارة الشعب والمواد</h3><p>زد أو قل الشعب وعدّل أسماءها والمواد العامة.</p></div><span class="settings-symbol">☷</span></div><div id="section-management" class="management-list"></div><div class="management-actions"><button class="btn-add btn-sm" onclick="addNewSection()">+ إضافة شعبة</button><button class="btn-link btn-sm" onclick="openManageSubjects()">إدارة المواد</button></div></section>
+<section class="settings-panel owner-only-panel"><div class="settings-panel-head"><div><h3>الحسابات المصرح لها</h3><p>من هنا تمنح أو تسحب صلاحية الدخول إلى لوحة الإدارة.</p></div><span class="settings-symbol">◎</span></div><div class="permission-add"><input id="admin-email-search" class="editable-input" placeholder="بريد حساب Google"><button class="btn-add btn-sm" onclick="grantAdminByEmail()">منح الصلاحية</button></div><div id="known-accounts-list" class="management-list"></div></section>
+</div></div>
+<div id="about-team" class="content-area">
             <button class="btn-link" style="margin-bottom:15px;" onclick="goBack()" id="backBtn">⬅️ رجوع</button>
             <div id="team-list"></div>
             <div class="add-new-container">

@@ -1,13 +1,17 @@
 {
-  "name": "منصة  عـــالَمے النُـبـلاءِ || 𝟐𝟎𝟏𝟎 ",
-  "short_name": "عـــالَمے النُـبـلاءِ",
+  "name": "المنارة الطلابية",
+  "short_name": "المنارة الطلابية",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#fff9ef",
   "theme_color": "#000000",
   "lang": "ar",
   "icons": [
-    { "src": "لوجو.png", "sizes": "200x200", "type": "image/png" },
-    { "src": "لوجو.png", "sizes": "512x512", "type": "image/png" }
-  ]
+    {
+      "src": "logo.png",
+      "sizes": "auto",
+      "type": "image/png"
+    }
+  ],
+  "description": "بوابة تعليمية لطلاب دفعة 2010"
 }

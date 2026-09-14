@@ -1,8 +1,8 @@
-const CACHE_NAME = 'app-shell-v1';
+const CACHE_NAME = 'app-shell-v2';
 const urlsToCache = [
   '/',
   'index.html',
-  'لوجو.png'
+  'logo.png'
 ];
 
 self.addEventListener('install', (event) => {

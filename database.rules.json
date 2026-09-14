@@ -4,16 +4,35 @@
     ".write": false,
     "appData": {
       ".read": true,
-      ".write": "auth != null && auth.token.email_verified == true && auth.token.email == 'mjdshbyr449@gmail.com'"
+      ".write": "auth != null && auth.token.email_verified == true && (auth.token.email == 'mjdshbyr449@gmail.com' || root.child('adminUsers').child(auth.uid).exists())"
     },
     "adminOnly": {
+      ".read": "auth != null && auth.token.email_verified == true && (auth.token.email == 'mjdshbyr449@gmail.com' || root.child('adminUsers').child(auth.uid).exists())",
+      ".write": false
+    },
+    "ownerOnly": {
       ".read": "auth != null && auth.token.email_verified == true && auth.token.email == 'mjdshbyr449@gmail.com'",
       ".write": false
     },
+    "adminUsers": {
+      ".read": "auth != null && auth.token.email_verified == true && auth.token.email == 'mjdshbyr449@gmail.com'",
+      ".write": "auth != null && auth.token.email_verified == true && auth.token.email == 'mjdshbyr449@gmail.com'",
+      "$uid": {
+        ".validate": "newData.hasChildren(['email','displayName','addedAt'])"
+      }
+    },
+    "loginDirectory": {
+      ".read": "auth != null && auth.token.email_verified == true && auth.token.email == 'mjdshbyr449@gmail.com'",
+      "$uid": {
+        ".write": "auth != null && auth.token.email_verified == true && auth.token.firebase.sign_in_provider == 'google.com' && auth.uid == $uid && !data.exists() && newData.child('uid').val() == auth.uid && newData.child('email').val() == auth.token.email",
+        ".validate": "newData.hasChildren(['uid','email','timestamp'])"
+      }
+    },
     "accessLogs": {
       ".read": "auth != null && auth.token.email_verified == true && auth.token.email == 'mjdshbyr449@gmail.com'",
-      "$logId": {
-        ".write": "auth != null && auth.token.email_verified == true && auth.token.firebase.sign_in_provider == 'google.com' && newData.hasChildren(['timestamp','allowed','uid','email']) && newData.child('timestamp').isNumber() && newData.child('allowed').isBoolean() && newData.child('uid').val() == auth.uid && newData.child('email').val() == auth.token.email"
+      "$uid": {
+        ".write": "auth != null && auth.token.email_verified == true && auth.token.firebase.sign_in_provider == 'google.com' && (auth.token.email == 'mjdshbyr449@gmail.com' || root.child('adminUsers').child(auth.uid).exists()) && auth.uid == $uid && !data.exists() && newData.child('uid').val() == auth.uid && newData.child('email').val() == auth.token.email && newData.child('allowed').val() == true",
+        ".validate": "newData.hasChildren(['uid','email','displayName','timestamp','allowed'])"
       }
     }
   }
