@@ -69,6 +69,9 @@
             deferredPrompt = null;
         });
         // --- DATA INITIALIZATION ---
+        let selectedSection = 1;
+        let currentView = 'home';
+        let isEditMode = window.APP_ROLE === 'admin';
         const defaultData = {
             sections: 1,
             sectionNames: ['الشعبة 1'],
@@ -234,7 +237,7 @@
         // تخزين الإعدادات محليًا فقط (localStorage)
         const DEFAULT_SETTINGS = {
             font: 'default',
-            colorScheme: 'ocean',
+            colorScheme: 'dark',
             fontScale: 80,
             lineHeight: 17,
             highContrast: false,
@@ -256,7 +259,7 @@
 
         // الحصول على الإعدادات الحالية (قبل استدعاء applyStoredSettings)
         let userSettings = loadUserSettings();
-if(userSettings && userSettings.colorScheme==='luxury') userSettings.colorScheme='ocean';
+    if(userSettings && ['ocean','sage','sand','rose','luxury'].includes(userSettings.colorScheme)) userSettings.colorScheme='dark';
 
 
         // تطبيق الخط
@@ -267,23 +270,22 @@ if(userSettings && userSettings.colorScheme==='luxury') userSettings.colorScheme
             userSettings.font=fontName; saveUserSettings(userSettings); updateFontButtons();
         }
         function setColorScheme(schemeName){
-            const C={ocean:{p:'#1e5472',s:'#5f8092',a:'#d8a64d',b:'#f4f8fb',t:'#243540',m:'#6f7e87'},sage:{p:'#35695e',s:'#6c8f83',a:'#c5a25d',b:'#f4f8f5',t:'#2d3c38',m:'#6f807a'},sand:{p:'#765c35',s:'#9b7b4f',a:'#c89945',b:'#faf7ef',t:'#41382d',m:'#7f7566'},rose:{p:'#815768',s:'#a77a8c',a:'#d6aa9a',b:'#fbf6f8',t:'#483a40',m:'#817279'}};
-            const c=C[schemeName]||C.ocean, r=document.documentElement;
-            r.style.setProperty('--primary-color',c.p);r.style.setProperty('--secondary-color',c.s);r.style.setProperty('--accent-color',c.a);r.style.setProperty('--bg-color',c.b);r.style.setProperty('--text-color',c.t);r.style.setProperty('--text-light',c.m);r.style.setProperty('--card-bg','#fff');
-            userSettings.colorScheme=schemeName; saveUserSettings(userSettings); updateColorSchemeButtons();
+            const normalized=schemeName==='light'?'light':'dark';
+            document.documentElement.dataset.theme=normalized;
+            userSettings.colorScheme=normalized; saveUserSettings(userSettings); updateColorSchemeButtons();
         }
         function updateFontButtons(){const cur=userSettings.font||'default';document.querySelectorAll('.font-choice-btn').forEach(b=>b.classList.toggle('selected',b.id===`font-${cur}-btn`));}
         function updateColorSchemeButtons(){const cur=userSettings.colorScheme||'ocean';document.querySelectorAll('.theme-option').forEach(b=>b.classList.toggle('selected',b.id===`scheme-${cur}-btn`));}
-        function setFontScale(v){const n=Math.max(80,Math.min(120,Number(v)||80));document.documentElement.style.setProperty('--font-scale',n/100);document.documentElement.style.setProperty('--base-font-size', (16*n/100)+'px');userSettings.fontScale=n;saveUserSettings(userSettings);const e=document.getElementById('font-size-value');if(e)e.textContent=n+'%';}
-        function setLineHeight(v){const n=Math.max(15,Math.min(22,Number(v)||17));document.documentElement.style.setProperty('--line-height-scale',n/10);userSettings.lineHeight=n;saveUserSettings(userSettings);const e=document.getElementById('line-height-value');if(e)e.textContent=(n/10).toFixed(1)+'×';}
+        function setFontScale(v){const n=Math.max(60,Math.min(120,Number(v)||80));document.documentElement.style.setProperty('--font-scale',n/100);document.documentElement.style.setProperty('--base-font-size', (16*n/100)+'px');userSettings.fontScale=n;saveUserSettings(userSettings);const e=document.getElementById('font-size-value');if(e)e.textContent=n+'%';const input=document.getElementById('font-size-range');if(input)input.value=n;}
+        function setLineHeight(v){const n=Math.max(15,Math.min(22,Number(v)||17));document.documentElement.style.setProperty('--line-height-scale',n/10);userSettings.lineHeight=n;saveUserSettings(userSettings);const e=document.getElementById('line-height-value');if(e)e.textContent=(n/10).toFixed(1)+'×';const input=document.getElementById('line-height-range');if(input)input.value=n;}
         function toggleHighContrast(){userSettings.highContrast=!userSettings.highContrast;document.body.classList.toggle('high-contrast',userSettings.highContrast);saveUserSettings(userSettings);updateAppearanceStates();}
         function toggleReducedMotion(){userSettings.reducedMotion=!userSettings.reducedMotion;document.body.classList.toggle('reduced-motion',userSettings.reducedMotion);saveUserSettings(userSettings);updateAppearanceStates();}
         function toggleCompactMode(){userSettings.compactMode=!userSettings.compactMode;document.body.classList.toggle('compact-mode',userSettings.compactMode);saveUserSettings(userSettings);updateAppearanceStates();}
         function updateAppearanceStates(){[['contrast-state',userSettings.highContrast],['motion-state',userSettings.reducedMotion],['compact-state',userSettings.compactMode]].forEach(x=>{const e=document.getElementById(x[0]);if(e)e.textContent=x[1]?'●':'○';});}
-        function resetAppearanceSettings(){userSettings={...DEFAULT_SETTINGS};saveUserSettings(userSettings);setFont('default');setColorScheme('ocean');setFontScale(80);setLineHeight(17);document.body.classList.remove('high-contrast','reduced-motion','compact-mode');updateAppearanceStates();render();}
+        function resetAppearanceSettings(){userSettings={...DEFAULT_SETTINGS};saveUserSettings(userSettings);setFont('default');setColorScheme('dark');setFontScale(80);setLineHeight(17);document.body.classList.remove('high-contrast','reduced-motion','compact-mode');updateAppearanceStates();render();}
         function applyStoredSettings(){
             const fm={default:'"Segoe UI", Tahoma, Arial, sans-serif',aldhabi:"'ALDHABI', sans-serif",alatypoo:"'AlaTypoo', sans-serif",dwnoutsh:"'DWNOUTSH', sans-serif",kfxftout:"'KFXFTOUT', sans-serif",ptbldbrk:"'PTBLDBRK', sans-serif"};
-            document.documentElement.style.setProperty('--font-family',fm[userSettings.font]||fm.default);setColorScheme(userSettings.colorScheme||'ocean');setFontScale(userSettings.fontScale||80);setLineHeight(userSettings.lineHeight||17);document.body.classList.toggle('high-contrast',!!userSettings.highContrast);document.body.classList.toggle('reduced-motion',!!userSettings.reducedMotion);document.body.classList.toggle('compact-mode',!!userSettings.compactMode);updateAppearanceStates();
+            document.documentElement.style.setProperty('--font-family',fm[userSettings.font]||fm.default);setColorScheme(userSettings.colorScheme||'dark');setFontScale(userSettings.fontScale||80);setLineHeight(userSettings.lineHeight||17);document.body.classList.toggle('high-contrast',!!userSettings.highContrast);document.body.classList.toggle('reduced-motion',!!userSettings.reducedMotion);document.body.classList.toggle('compact-mode',!!userSettings.compactMode);updateAppearanceStates();
         }
         applyStoredSettings();
 
@@ -304,12 +306,8 @@ if(userSettings && userSettings.colorScheme==='luxury') userSettings.colorScheme
         function revokeAdmin(uid){if(!window.IS_OWNER||!db)return;if(!confirm('سحب صلاحية هذا الحساب؟'))return;db.ref('adminUsers/'+uid).remove().then(renderKnownAccounts);}
         function grantAdminByEmail(){if(!window.IS_OWNER||!db)return;const input=document.getElementById('admin-email-search'),email=((input&&input.value)||'').trim().toLowerCase();if(!email)return;db.ref('loginDirectory').once('value').then(s=>{let found=null;s.forEach(c=>{const v=c.val()||{};if(String(v.email||'').toLowerCase()===email)found={uid:c.key,...v};});if(!found){alert('الحساب يجب أن يحاول الدخول إلى /admin/ مرة واحدة أولاً.');return;}return db.ref('adminUsers/'+found.uid).set({email:found.email||email,displayName:found.displayName||'',addedAt:firebase.database.ServerValue.TIMESTAMP});}).then(()=>{if(input)input.value='';renderKnownAccounts();});}
 
-        // --- NAVIGATION / STATE ---
+        // --- NAVIGATION ---
 
-        // Core UI state must always exist before the first render (public and admin).
-        let currentView = 'home';
-        let selectedSection = 1;
-        let isEditMode = false;
         let sectionHistory = [];
 
         function showSection(sectionId) {
@@ -340,7 +338,9 @@ if(userSettings && userSettings.colorScheme==='luxury') userSettings.colorScheme
                 'group-links': 'روابط المجموعات',
                 'important-links': 'روابط مهمة',
                 'settings': 'الإعدادات',
-                'about-team': 'فريق التطوير'
+                'about-team': 'فريق التطوير',
+                'weekly-schedule': 'الجدول الأسبوعي',
+                'access-logs': 'سجل الدخول'
             };
             document.getElementById('page-heading').innerText = titles[sectionId];
             render();
@@ -370,8 +370,6 @@ if(userSettings && userSettings.colorScheme==='luxury') userSettings.colorScheme
         // --- RENDER FUNCTIONS ---
 
         function render() {
-            // Admin page flips this flag after Google authorization; public page stays read-only.
-            isEditMode = (window.APP_ROLE === 'admin' && window.IS_ADMIN === true);
             renderDate();
             renderSectionSelectors();
             if(currentView === 'progress') renderProgress();
@@ -1649,6 +1647,7 @@ if(userSettings && userSettings.colorScheme==='luxury') userSettings.colorScheme
             const a = document.createElement('a');
             a.href = url; a.download = att.name || 'file'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
         }
+        function downloadNewsFile(itemIndex, attIndex) { downloadAttachment('news', itemIndex, attIndex); }
         // --- NEWS FUNCTIONS ---
         function renderNews() {
             const container = document.getElementById('news-list');
@@ -1923,7 +1922,7 @@ if(userSettings && userSettings.colorScheme==='luxury') userSettings.colorScheme
                 container.appendChild(preview);
             }
             if(appData.team.length === 0) {
-                container.innerHTML = '<p style="color:var(--text-light); text-align:center;">لا يوجد أعضاء في الفريق حالياً</p>';
+                const empty=document.createElement('p');empty.style.cssText='color:var(--text-light);text-align:center;';empty.textContent='لا يوجد أعضاء في الفريق حالياً';container.appendChild(empty);
                 return;
             }
             appData.team.forEach((member, index) => {
@@ -2386,7 +2385,7 @@ if(userSettings && userSettings.colorScheme==='luxury') userSettings.colorScheme
         window.handleFileAttachment = handleFileAttachment;
         window.selectNewsAttachmentType = selectNewsAttachmentType;
         window.clearNewsAttachment = clearNewsAttachment;
-        window.downloadNewsFile = function(itemIndex, attIndex){ return downloadAttachment('news', itemIndex, attIndex); };
+        window.downloadNewsFile = downloadNewsFile;
         window.handleNewsImageAttachment = handleNewsImageAttachment;
         window.handleNewsFileAttachment = handleNewsFileAttachment;
 
@@ -2458,6 +2457,6 @@ if(userSettings && userSettings.colorScheme==='luxury') userSettings.colorScheme
                 if(deferredPrompt) showPrompt();
             });
         
-  Object.assign(window,{setFont,setColorScheme,setFontScale,setLineHeight,toggleHighContrast,toggleReducedMotion,toggleCompactMode,resetAppearanceSettings,showSection,goBack,setSection,openManageSubjects,addGlobalSubject,updateGlobalSubject,deleteGlobalSubject,addNewSection,renameSection,deleteSection,grantAdminByEmail,grantAdmin,revokeAdmin,renderKnownAccounts,toggleWeeklySchedule,weeklyAddNew,render});
+    Object.assign(window,{setFont,setColorScheme,setFontScale,setLineHeight,toggleHighContrast,toggleReducedMotion,toggleCompactMode,resetAppearanceSettings,showSection,goBack,setSection,openManageSubjects,addSubject,deleteSubject,addNewSection,renameSection,deleteSection,grantAdminByEmail,grantAdmin,revokeAdmin,renderKnownAccounts,toggleWeeklySchedule,weeklyAddNew,render});
 })();
     

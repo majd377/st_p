@@ -487,15 +487,13 @@
 <button class="font-choice-btn" id="font-ptbldbrk-btn" onclick="setFont('ptbldbrk')" style="font-family:'PTBLDBRK',sans-serif"><strong>خط كلاسيكي</strong><small style="font-family:'PTBLDBRK',sans-serif">المنارة الطلابية</small></button>
 <button class="font-choice-btn" id="font-aldhabi-btn" onclick="setFont('aldhabi')" style="font-family:'ALDHABI',sans-serif"><strong>خط عربي زخرفي</strong><small style="font-family:'ALDHABI',sans-serif">المنارة الطلابية</small></button>
 </div>
-<div class="range-row"><div class="range-label"><strong>حجم الخط</strong><span id="font-size-value">80%</span></div><input id="font-size-range" max="120" min="80" oninput="setFontScale(this.value)" step="5" type="range" value="80"/></div>
+<div class="range-row"><div class="range-label"><strong>حجم الخط</strong><span id="font-size-value">80%</span></div><input id="font-size-range" max="120" min="60" oninput="setFontScale(this.value)" step="5" type="range" value="80"/></div>
 <div class="range-row"><div class="range-label"><strong>تباعد السطور</strong><span id="line-height-value">1.7×</span></div><input id="line-height-range" max="22" min="15" oninput="setLineHeight(this.value)" step="1" type="range" value="17"/></div>
 </section>
 <section class="settings-panel"><div class="settings-panel-head"><div><h3>المظهر</h3><p></p></div><span class="settings-symbol">◐</span></div>
 <div class="theme-grid theme-preview-grid">
-<button class="theme-option" id="scheme-ocean-btn" onclick="setColorScheme('ocean')"><span class="theme-swatch ocean"></span><b>نسمة البحر</b><small>لون حي داخل الخانة</small></button>
-<button class="theme-option" id="scheme-sage-btn" onclick="setColorScheme('sage')"><span class="theme-swatch sage"></span><b>ورق الزيتون</b><small>لون حي داخل الخانة</small></button>
-<button class="theme-option" id="scheme-sand-btn" onclick="setColorScheme('sand')"><span class="theme-swatch sand"></span><b>دفء الورق</b><small>لون حي داخل الخانة</small></button>
-<button class="theme-option" id="scheme-rose-btn" onclick="setColorScheme('rose')"><span class="theme-swatch rose"></span><b>ورد هادئ</b><small>لون حي داخل الخانة</small></button>
+<button class="theme-option" id="scheme-dark-btn" onclick="setColorScheme('dark')"><span class="theme-swatch dark"></span><b>الداكن الملكي</b><small>أسود فحمي ولمسة ذهبية</small></button>
+<button class="theme-option" id="scheme-light-btn" onclick="setColorScheme('light')"><span class="theme-swatch light"></span><b>الفاتح الراقي</b><small>أبيض دافئ ولمسة ذهبية</small></button>
 </div>
 <div class="appearance-switches"><button class="switch-card" onclick="toggleHighContrast()"><span><b>وضوح أعلى</b><small>نص وحدود أوضح</small></span><i id="contrast-state">○</i></button><button class="switch-card" onclick="toggleReducedMotion()"><span><b>حركة أقل</b><small>انتقالات أخف</small></span><i id="motion-state">○</i></button><button class="switch-card" onclick="toggleCompactMode()"><span><b>وضع مدمج</b><small>مسافات أقل</small></span><i id="compact-state">○</i></button></div>
 </section>
