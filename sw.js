@@ -1,14 +1,20 @@
-const CACHE_NAME = 'app-shell-v2';
+const CACHE_NAME = 'app-shell-v3';
 const urlsToCache = [
-  '/',
-  'index.html',
-  'logo.png'
+  './',
+  './index.html',
+  './assets/css/style.css?v=20260914-3',
+  './assets/css/v4-overrides.css?v=20260914-3',
+  './assets/js/firebase-config.js?v=20260914-3',
+  './assets/js/app.js?v=20260914-3',
+  './logo.png'
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(urlsToCache);
+    caches.open(CACHE_NAME).then(async (cache) => {
+      await Promise.all(urlsToCache.map(async (url) => {
+        try { await cache.add(url); } catch (error) { console.warn('Cache skipped:', url, error); }
+      }));
     })
   );
   self.skipWaiting();

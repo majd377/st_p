@@ -31,7 +31,7 @@
             // Don't attempt registration when page is opened via file:// (origin 'null').
             if (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
                 window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW register failed', e));
+                    navigator.serviceWorker.register('sw.js?v=20260914-3').catch(e => console.warn('SW register failed', e));
                 });
             } else {
                 console.info('ServiceWorker registration skipped: insecure origin', location.protocol, location.hostname);
