@@ -1,6 +1,7 @@
 (function(){
   const OWNER_EMAIL = 'mjdshbyr449@gmail.com';
   let authBooted = false;
+  let authAttempt = 0;
 
   function lower(v){ return String(v || '').trim().toLowerCase(); }
   function isOwner(user){ return !!user && user.email && lower(user.email) === OWNER_EMAIL && user.emailVerified === true; }
@@ -54,6 +55,7 @@
     const btn=document.getElementById('google-admin-btn'); if(btn) btn.disabled=false;
   }
   function renderAdmin(){
+    if(!window.IS_ADMIN || !window.AUTH_USER) return;
     const gate=document.getElementById('admin-gate');
     if(gate) gate.remove();
     setAuthorized(window.AUTH_USER, !!window.IS_OWNER);
@@ -61,17 +63,21 @@
     if(window.showSection) window.showSection('home');
   }
   async function processUser(user, afterPopup){
+    const attempt=++authAttempt;
     if(!user){ setLocked(); return; }
     window.AUTH_USER=user;
     if(!afterPopup) document.getElementById('admin-gate-msg').textContent='جاري التحقق من صلاحية الحساب...';
     await writeDirectory(user);
+    if(attempt!==authAttempt || !firebase.auth().currentUser || firebase.auth().currentUser.uid!==user.uid){ setLocked(); return; }
     const result=await authorize(user);
     if(!result.allowed){
       try{ await firebase.auth().signOut(); }catch(e){}
       deny('عذراً، لن يتم تسجيل دخولك إلى لوحة الإدارة.');
       return;
     }
+    if(attempt!==authAttempt || !firebase.auth().currentUser || firebase.auth().currentUser.uid!==user.uid){ setLocked(); return; }
     await recordFirstAllowedLogin(user);
+    if(attempt!==authAttempt || !firebase.auth().currentUser || firebase.auth().currentUser.uid!==user.uid){ setLocked(); return; }
     setAuthorized(user,result.owner);
     renderAdmin();
   }
@@ -95,6 +101,8 @@
         await processUser(result.user,true);
       }catch(e){
         console.error(e);
+        authAttempt++;
+        try{ await firebase.auth().signOut(); }catch(ignore){}
         const text=e && e.code==='auth/unauthorized-domain'
           ? 'هذا النطاق غير مضاف إلى Authorized domains في Firebase.'
           : e && e.code==='auth/popup-blocked'
@@ -104,7 +112,7 @@
       }
     };
     firebase.auth().onAuthStateChanged(async user=>{
-      if(!user){ setLocked(); return; }
+      if(!user){ authAttempt++; setLocked(); return; }
       await processUser(user,false);
     });
   }
