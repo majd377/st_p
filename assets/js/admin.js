@@ -14,6 +14,7 @@
     document.body.classList.toggle('owner-mode', !!owner);
     document.querySelectorAll('.owner-only-nav').forEach(el=>el.style.display=owner?'flex':'none');
     document.querySelectorAll('.owner-only-panel').forEach(el=>el.style.display=owner?'block':'none');
+    document.querySelectorAll('.owner-only-control').forEach(el=>el.style.display=owner?'':'none');
   }
   async function writeDirectory(user){
     const ref=firebase.database().ref('loginDirectory/'+user.uid);

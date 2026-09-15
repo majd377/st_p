@@ -221,6 +221,25 @@
         }
         window.saveData = saveData;
 
+        function deleteAllItems(label, getList, afterDelete){
+            if(!window.IS_ADMIN)return;
+            const list=getList();
+            if(!Array.isArray(list) || list.length===0){alert('لا توجد بيانات لحذفها.');return;}
+            if(!confirm('هل أنت متأكد من حذف جميع '+label+'؟ لا يمكن التراجع عن هذا الإجراء.'))return;
+            list.splice(0,list.length);
+            saveData();
+            if(afterDelete)afterDelete();else render();
+        }
+        function deleteAllSectionItems(label, getList, afterDelete){
+            if(!window.IS_ADMIN)return;
+            const list=getList();
+            if(!Array.isArray(list) || list.length===0){alert('لا توجد بيانات لحذفها في الشعبة الحالية.');return;}
+            if(!confirm('هل أنت متأكد من حذف جميع '+label+' في الشعبة الحالية؟ لا يمكن التراجع عن هذا الإجراء.'))return;
+            list.splice(0,list.length);
+            saveData();
+            if(afterDelete)afterDelete();else render();
+        }
+
         function loadDataFromFirebase(){
             if(firebaseLoadStarted || !db) return;
             firebaseLoadStarted = true;
@@ -312,6 +331,7 @@
 
         function showSection(sectionId) {
             if(window.APP_ROLE === 'admin' && !window.IS_ADMIN) return;
+            if(sectionId === 'access-logs' && !window.IS_OWNER) return;
             if (currentView !== sectionId) {
                 sectionHistory.push(currentView);
             }
@@ -387,6 +407,7 @@
             if(currentView === 'important-links') renderImportantLinks();
             if(currentView === 'settings') renderSettings();
             if(currentView === 'about-team') renderTeam();
+            if(currentView === 'access-logs' && window.IS_OWNER && window.renderAccessLogs) window.renderAccessLogs();
             hideEmptyPublicActions();
         }
         function hideEmptyPublicActions(){if(window.IS_ADMIN)return;document.querySelectorAll('.content-area a').forEach(a=>{const h=(a.getAttribute('href')||'').trim();if(!h||h==='#'||h.toLowerCase()==='javascript:void(0)')a.style.display='none';});document.querySelectorAll('.content-area .optional-action[data-empty="true"]').forEach(e=>e.style.display='none');}
@@ -421,11 +442,12 @@
         function renderProgress() {
             const container = document.getElementById('progress-list');
             container.innerHTML = '';
+            if(window.IS_ADMIN){const clear=document.createElement('button');clear.className='btn-sm btn-delete';clear.textContent='حذف جميع بيانات التقدم للشعبة';clear.style.marginBottom='12px';clear.onclick=()=>{const sectionData=appData.progress[selectedSection]||{};if(!Object.keys(sectionData).length){alert('لا توجد بيانات لحذفها في الشعبة الحالية.');return;}if(!confirm('هل أنت متأكد من حذف جميع بيانات التقدم في الشعبة الحالية؟ لا يمكن التراجع عن هذا الإجراء.'))return;appData.progress[selectedSection]={};saveData();render();};container.appendChild(clear);}
             const sectionData = appData.progress[selectedSection] || {};
             // Show only subjects that are present for this section (allow per-section removal)
             const subjectsInSection = Object.keys(sectionData);
             if(subjectsInSection.length === 0) {
-                container.innerHTML = '<p style="color:var(--text-light); text-align:center;">لا توجد مواد مسجلة لهذه الشعبة حالياً.</p>';
+                container.insertAdjacentHTML('beforeend','<p style="color:var(--text-light); text-align:center;">لا توجد مواد مسجلة لهذه الشعبة حالياً.</p>');
             }
 
             subjectsInSection.forEach(sub => {
@@ -538,6 +560,7 @@
         function renderAssignments() {
             const container = document.getElementById('assignments-list');
             container.innerHTML = '';
+            if(window.IS_ADMIN){const clear=document.createElement('button');clear.className='btn-sm btn-delete';clear.textContent='حذف جميع الواجبات للشعبة';clear.style.marginBottom='12px';clear.onclick=()=>deleteAllSectionItems('الواجبات',()=>appData.assignments[selectedSection]||[],()=>renderAssignments());container.appendChild(clear);}
             let tasks = appData.assignments[selectedSection] || [];
 
             // filter controls
@@ -588,7 +611,7 @@
             // (folder UI removed)
 
             if(tasks.length === 0) {
-                container.innerHTML = '<p style="color:var(--text-light); text-align:center;">لا يوجد واجبات مسجلة لهذه الشعبة حالياً.</p>';
+                container.insertAdjacentHTML('beforeend','<p style="color:var(--text-light); text-align:center;">لا يوجد واجبات مسجلة لهذه الشعبة حالياً.</p>');
                 return;
             }
 
@@ -647,6 +670,7 @@
         function renderRecordings() {
             const container = document.getElementById('recordings-list');
             container.innerHTML = '';
+            if(window.IS_ADMIN){const clear=document.createElement('button');clear.className='btn-sm btn-delete';clear.textContent='حذف جميع التسجيلات للشعبة';clear.style.marginBottom='12px';clear.onclick=()=>deleteAllSectionItems('التسجيلات',()=>appData.recordings[selectedSection]||[],()=>renderRecordings());container.appendChild(clear);}
             let recs = appData.recordings[selectedSection] || [];
 
             // render channel link box (global default)
@@ -709,7 +733,7 @@
             }
 
             if(recs.length === 0) {
-                container.innerHTML = '<p style="color:var(--text-light); text-align:center;">جميع التسجيلات مرفوعة على قناة 🌸غزة العاشر أ ٢٥ ﴿ تسجيلات الحصص ﴾🌸</p>';
+                container.insertAdjacentHTML('beforeend','<p style="color:var(--text-light); text-align:center;">جميع التسجيلات مرفوعة على قناة التسجيلات.</p>');
             } else {
                 recs.forEach((r) => {
                     const origIndex = (appData.recordings[selectedSection] || []).findIndex(rr => rr.id === r.id);
@@ -1223,6 +1247,7 @@
         function renderSupport() {
             const container = document.getElementById('support-list');
             container.innerHTML = '';
+            if(window.IS_ADMIN){const clear=document.createElement('button');clear.className='btn-sm btn-delete';clear.textContent='حذف جميع أرقام الدعم';clear.style.marginBottom='12px';clear.onclick=()=>deleteAllItems('أرقام الدعم',()=>appData.support);container.appendChild(clear);}
             appData.support.forEach((item, index) => {
                 const div = document.createElement('div');
                 div.className = 'data-card';
@@ -1264,6 +1289,7 @@
         function renderSummaries() {
             const container = document.getElementById('summaries-list');
             container.innerHTML = '';
+            if(window.IS_ADMIN){const clear=document.createElement('button');clear.className='btn-sm btn-delete';clear.textContent='حذف جميع التلخيصات والملفات';clear.style.marginBottom='12px';clear.onclick=()=>deleteAllItems('التلخيصات والملفات',()=>appData.summaries);container.appendChild(clear);}
             appData.summaries.forEach((item, index) => {
                 const div = document.createElement('div');
                 div.className = 'data-card';
@@ -1330,6 +1356,7 @@
             const toolbar=document.createElement('div');toolbar.className='schedule-toolbar';toolbar.innerHTML='<div><label>اليوم</label><select id="weekly-day-select" class="editable-input">'+WEEK_DAYS_AR.map(x=>'<option value="'+x[0]+'" '+(day===x[0]?'selected':'')+'>'+x[1]+'</option>').join('')+'</select></div><div><label>الشعبة</label><select id="weekly-section-select" class="editable-input">'+Array.from({length:appData.sections},(_,i)=>'<option value="'+(i+1)+'" '+(sec===i+1?'selected':'')+'>'+escapeHtml(getSectionLabel(i+1))+'</option>').join('')+'</select></div><label class="admin-check"><input id="weekly-enabled-toggle" type="checkbox" '+(appData.weeklyScheduleEnabled?'checked':'')+'> استخدام الجدول تلقائياً</label>';
             box.appendChild(toolbar);toolbar.querySelector('#weekly-day-select').onchange=renderWeeklySchedule;toolbar.querySelector('#weekly-section-select').onchange=renderWeeklySchedule;toolbar.querySelector('#weekly-enabled-toggle').onchange=e=>toggleWeeklySchedule(e.target.checked);
             const note=document.createElement('div');note.className='notice';note.textContent='القائمة تتكرر أسبوعياً بحسب اليوم والشعبة، ويمكنك وضع أكثر من حصة في اليوم نفسه.';box.appendChild(note);
+            if(window.IS_ADMIN){const clear=document.createElement('button');clear.className='btn-sm btn-delete';clear.textContent='حذف جميع حصص هذا اليوم للشعبة';clear.style.margin='10px 0';clear.onclick=()=>{if(!entries.length){alert('لا توجد حصص لحذفها لهذا اليوم.');return;}if(!confirm('هل أنت متأكد من حذف جميع حصص هذا اليوم للشعبة الحالية؟ لا يمكن التراجع عن هذا الإجراء.'))return;entries.splice(0,entries.length);saveData();renderWeeklySchedule();};box.appendChild(clear);}
             const list=document.createElement('div');list.className='schedule-list';entries.forEach((e,i)=>{const row=document.createElement('div');row.className='schedule-row';row.innerHTML='<div class="schedule-index">'+(i+1)+'</div><div><div class="schedule-grid-fields"><input class="editable-input" value="'+escapeHtml(e.subject||'')+'" placeholder="المادة"><input class="editable-input" value="'+escapeHtml(e.teacher||'')+'" placeholder="المعلم (اختياري)"><input type="time" class="editable-input" value="'+(e.from||'')+'"><input type="time" class="editable-input" value="'+(e.to||'')+'"><input class="editable-input full" value="'+escapeHtml(e.link||'')+'" placeholder="رابط الحصة (اختياري)"><input class="editable-input full" value="'+escapeHtml(e.note||'')+'" placeholder="ملاحظة (اختياري)"></div><div class="schedule-actions"><button class="btn-sm btn-add">حفظ</button><button class="btn-sm btn-delete">حذف</button></div></div>';const inp=row.querySelectorAll('input');row.querySelector('.btn-add').onclick=()=>{e.subject=inp[0].value.trim();e.teacher=inp[1].value.trim();e.from=inp[2].value;e.to=inp[3].value;e.link=inp[4].value.trim();e.note=inp[5].value.trim();saveData();renderWeeklySchedule();};row.querySelector('.btn-delete').onclick=()=>{entries.splice(i,1);saveData();renderWeeklySchedule();};list.appendChild(row);});
             const add=document.createElement('div');add.className='schedule-add';add.innerHTML='<h4>إضافة حصة إلى '+escapeHtml(getSectionLabel(sec))+' — '+escapeHtml((WEEK_DAYS_AR.find(x=>x[0]===day)||['',day])[1])+'</h4><div class="schedule-grid-fields"><input id="ws-subject" class="editable-input" placeholder="المادة"><input id="ws-teacher" class="editable-input" placeholder="المعلم (اختياري)"><input id="ws-from" type="time" class="editable-input"><input id="ws-to" type="time" class="editable-input"><input id="ws-link" class="editable-input full" placeholder="رابط الحصة (اختياري)"><input id="ws-note" class="editable-input full" placeholder="ملاحظة (اختياري)"></div><button class="btn-add btn-sm" onclick="weeklyAddNew()">+ إضافة الحصة</button>';list.appendChild(add);box.appendChild(list);
         }
@@ -1338,6 +1365,7 @@
         function renderLiveLinks() {
             const container = document.getElementById('live-list');
             container.innerHTML = '';
+            if(window.IS_ADMIN){const clear=document.createElement('button');clear.className='btn-sm btn-delete';clear.textContent='حذف جميع روابط الحصص للشعبة';clear.style.marginBottom='12px';clear.onclick=()=>{if(!confirm('هل أنت متأكد من حذف جميع روابط الحصص في الشعبة الحالية؟ لا يمكن التراجع عن هذا الإجراء.'))return;appData.liveLinks[selectedSection]={};saveData();renderLiveLinks();};container.appendChild(clear);}
             const effective = getEffectiveLiveLinks();
             const banner = document.createElement('div');
             if(effectiveSourceLabel(effective.source)){ banner.className='notice'; banner.style.cssText='padding:10px 12px;margin-bottom:12px;'; banner.textContent=effectiveSourceLabel(effective.source); container.appendChild(banner); }
@@ -1345,7 +1373,7 @@
             // If there are existing entries for this section, list them (allow renaming)
             const keys = Object.keys(links);
             if(keys.length === 0) {
-                container.innerHTML = '<p style="color:var(--text-light); text-align:center;">لا توجد روابط مسجلة لهذه الشعبة حالياً. أضف مادة جديدة أدناه.</p>';
+                container.insertAdjacentHTML('beforeend','<p style="color:var(--text-light); text-align:center;">لا توجد روابط مسجلة لهذه الشعبة حالياً. أضف مادة جديدة أدناه.</p>');
             }
 
             keys.forEach(sub => {
@@ -1652,8 +1680,9 @@
         function renderNews() {
             const container = document.getElementById('news-list');
             container.innerHTML = '';
+            if(window.IS_ADMIN){const clear=document.createElement('button');clear.className='btn-sm btn-delete';clear.textContent='حذف جميع الأخبار';clear.style.marginBottom='12px';clear.onclick=()=>deleteAllItems('الأخبار',()=>appData.news);container.appendChild(clear);}
             if(appData.news.length === 0) {
-                container.innerHTML = '<p style="color:var(--text-light); text-align:center;">لا توجد أخبار حالياً</p>';
+                container.insertAdjacentHTML('beforeend','<p style="color:var(--text-light); text-align:center;">لا توجد أخبار حالياً</p>');
                 return;
             }
             appData.news.forEach((item, index) => {
@@ -1742,8 +1771,9 @@
         function renderImportantLinks() {
             const container = document.getElementById('important-links-list');
             container.innerHTML = '';
+            if(window.IS_ADMIN){const clear=document.createElement('button');clear.className='btn-sm btn-delete';clear.textContent='حذف جميع الروابط المهمة';clear.style.marginBottom='12px';clear.onclick=()=>deleteAllItems('الروابط المهمة',()=>appData.importantLinks);container.appendChild(clear);}
             if(appData.importantLinks.length === 0) {
-                container.innerHTML = '<p style="color:var(--text-light); text-align:center;">لا توجد روابط مهمة حالياً</p>';
+                container.insertAdjacentHTML('beforeend','<p style="color:var(--text-light); text-align:center;">لا توجد روابط مهمة حالياً</p>');
                 return;
             }
             appData.importantLinks.forEach((item, index) => {
@@ -1822,9 +1852,10 @@
         function renderTeachers() {
             const container = document.getElementById('teachers-list');
             container.innerHTML = '';
+            if(window.IS_ADMIN){const clear=document.createElement('button');clear.className='btn-sm btn-delete';clear.textContent='حذف جميع الأساتذة للشعبة';clear.style.marginBottom='12px';clear.onclick=()=>deleteAllSectionItems('الأساتذة',()=>appData.teachers[selectedSection]||[],()=>renderTeachers());container.appendChild(clear);}
             const list = appData.teachers[selectedSection] || [];
             if(!list || list.length === 0) {
-                container.innerHTML = '<p style="color:var(--text-light); text-align:center;">لا يوجد أساتذة مسجلين لهذه الشعبة حالياً</p>';
+                container.insertAdjacentHTML('beforeend','<p style="color:var(--text-light); text-align:center;">لا يوجد أساتذة مسجلين لهذه الشعبة حالياً</p>');
                 return;
             }
             list.forEach((t, index) => {
@@ -1870,9 +1901,10 @@
         function renderGroupLinks() {
             const container = document.getElementById('group-links-list');
             container.innerHTML = '';
+            if(window.IS_ADMIN){const clear=document.createElement('button');clear.className='btn-sm btn-delete';clear.textContent='حذف جميع روابط المجموعات للشعبة';clear.style.marginBottom='12px';clear.onclick=()=>deleteAllSectionItems('روابط المجموعات',()=>appData.groupLinks[selectedSection]||[],()=>renderGroupLinks());container.appendChild(clear);}
             const list = appData.groupLinks[selectedSection] || [];
             if(!list || list.length === 0) {
-                container.innerHTML = '<p style="color:var(--text-light); text-align:center;">لا توجد روابط للمجموعات لهذه الشعبة حالياً</p>';
+                container.insertAdjacentHTML('beforeend','<p style="color:var(--text-light); text-align:center;">لا توجد روابط للمجموعات لهذه الشعبة حالياً</p>');
                 return;
             }
             list.forEach((item, index) => {
@@ -1916,6 +1948,7 @@
         function renderTeam() {
             const container = document.getElementById('team-list');
             container.innerHTML = '';
+            if(window.IS_ADMIN){const clear=document.createElement('button');clear.className='btn-sm btn-delete';clear.textContent='حذف جميع أعضاء الفريق';clear.style.marginBottom='12px';clear.onclick=()=>deleteAllItems('أعضاء الفريق',()=>appData.team);container.appendChild(clear);}
             if(window.IS_ADMIN){
                 const preview=document.createElement('div');preview.className='team-font-preview team-font-preview-centered';
                 preview.innerHTML='<small>معاينة الخط الحالي</small><strong style="font-family:var(--font-family)">المنارة الطلابية — فريق التطوير</strong>';
@@ -2027,6 +2060,7 @@
         function renderExams() {
             const container = document.getElementById('exams-list');
             container.innerHTML = '';
+            if(window.IS_ADMIN){const clear=document.createElement('button');clear.className='btn-sm btn-delete';clear.textContent='حذف جميع الاختبارات للشعبة';clear.style.marginBottom='12px';clear.onclick=()=>deleteAllSectionItems('الاختبارات',()=>appData.exams[selectedSection]||[],()=>renderExams());container.appendChild(clear);}
             let exams = appData.exams[selectedSection] || [];
 
             // populate the subject chooser in the add-exam form
@@ -2038,7 +2072,7 @@
             }
 
             if(exams.length === 0) {
-                container.innerHTML = '<p style="color:var(--text-light); text-align:center;">لا توجد اختبارات مسجلة لهذه الشعبة حالياً.</p>';
+                container.insertAdjacentHTML('beforeend','<p style="color:var(--text-light); text-align:center;">لا توجد اختبارات مسجلة لهذه الشعبة حالياً.</p>');
                 return;
             }
 
@@ -2175,8 +2209,9 @@
             const container = document.getElementById('books-packages-list');
             container.innerHTML = '';
             const list = booksPackagesType === 'books' ? appData.books : appData.packages;
+            if(window.IS_ADMIN){const clear=document.createElement('button');clear.className='btn-sm btn-delete';clear.textContent=booksPackagesType==='books'?'حذف جميع الكتب':'حذف جميع الرزم';clear.style.marginBottom='12px';clear.onclick=()=>deleteAllItems(booksPackagesType==='books'?'الكتب':'الرزم',()=>booksPackagesType==='books'?appData.books:appData.packages);container.appendChild(clear);}
             if (!list || list.length === 0) {
-                container.innerHTML = `<p style="color:var(--text-light); text-align:center;">لا يوجد ${booksPackagesType === 'books' ? 'كتب' : 'رزم'} حالياً.</p>`;
+                container.insertAdjacentHTML('beforeend',`<p style="color:var(--text-light); text-align:center;">لا يوجد ${booksPackagesType === 'books' ? 'كتب' : 'رزم'} حالياً.</p>`);
                 return;
             }
             list.forEach((item, index) => {

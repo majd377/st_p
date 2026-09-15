@@ -8,9 +8,16 @@
   "lang": "ar",
   "icons": [
     {
+      "src": "icon-rounded.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
       "src": "logo.png",
       "sizes": "any",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     }
   ],
   "description": "بوابة تعليمية لطلاب دفعة 2010"
