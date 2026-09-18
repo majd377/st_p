@@ -1,7 +1,10 @@
-# المنارة الطلابية — V4
+# المنارة الطلابية — V5
 
 هذه هي النسخة التي يُنصح بنشرها.
 
-لخطوات Firebase والصلاحيات والجدول والإعدادات، راجع `README_V4.md`.
+⚠️ **قبل أي شيء**: ارفع `database.rules.json` إلى
+Firebase Console → Realtime Database → Rules → Publish.
+بدونها لن يعمل سجل إشعارات الدخول.
 
-قواعد Firebase الموجودة في `database.rules.json` ليست أسراراً؛ الحماية تعتمد على قواعد Firebase نفسها، وليس على إخفاء JavaScript.
+- لملخّص كل ما تغيّر في هذه النسخة وكيف تختبره: `README_V5.md`
+- لخطوات Firebase والصلاحيات والجدول والإعدادات: `README_V4.md`

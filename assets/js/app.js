@@ -1,4 +1,19 @@
 
+// ===== حماية ضد تضمين الموقع داخل iframe (Clickjacking) =====
+(function(){
+  try{
+    if (window.top !== window.self){
+      // لوحة الإدارة لا يُسمح بتضمينها إطلاقاً
+      if (window.APP_ROLE === 'admin'){
+        document.documentElement.innerHTML = '<p style="font-family:sans-serif;padding:24px;direction:rtl">لا يمكن فتح لوحة الإدارة داخل إطار.</p>';
+        try { window.top.location = window.self.location; } catch(e){}
+        throw new Error('framed');
+      }
+      try { window.top.location = window.self.location; } catch(e){}
+    }
+  }catch(e){ /* تجاهل */ }
+})();
+
 (function(){
   const cfg = window.FIREBASE_CONFIG;
   if (cfg && window.firebase) {
@@ -10,7 +25,9 @@
 
         (function(){
             try {
-                if (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+                if (window.APP_ROLE === 'admin') {
+                    console.info('Manifest injection skipped for admin panel');
+                } else if (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
                     var link = document.createElement('link');
                     link.rel = 'manifest';
                     link.href = 'manifest.json';
@@ -26,12 +43,14 @@
 
 
         // --- PWA: register service worker and handle beforeinstallprompt ---
-        if('serviceWorker' in navigator) {
+        // لوحة الإدارة لا تُسجّل service worker إطلاقاً — لا نريد أي نسخة
+        // مخبّأة من صفحة تحكم، ولا رداً من الكاش يسبق التحقق من الصلاحية.
+        if('serviceWorker' in navigator && window.APP_ROLE !== 'admin') {
             // Service workers require a secure context (https) or localhost.
             // Don't attempt registration when page is opened via file:// (origin 'null').
             if (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
                 window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('sw.js?v=20260914-3').catch(e => console.warn('SW register failed', e));
+                    navigator.serviceWorker.register('sw.js?v=20260918-5').catch(e => console.warn('SW register failed', e));
                 });
             } else {
                 console.info('ServiceWorker registration skipped: insecure origin', location.protocol, location.hostname);
@@ -71,7 +90,12 @@
         // --- DATA INITIALIZATION ---
         let selectedSection = 1;
         let currentView = 'home';
-        let isEditMode = window.APP_ROLE === 'admin';
+        // وضع التعديل لا يُفعّل إلا في لوحة الإدارة وبعد التحقق الكامل
+        let isEditMode = false;
+        Object.defineProperty(window, 'EDIT_MODE', {
+            get(){ return isEditMode; },
+            configurable: false
+        });
         const defaultData = {
             sections: 1,
             sectionNames: ['الشعبة 1'],
@@ -209,10 +233,30 @@
         let appData = normalizeAppData(JSON.parse(localStorage.getItem('collegeAppData')) || defaultData);
 
         let firebaseLoadStarted = false;
-        function canWriteData(){ return window.APP_ROLE !== 'admin' || window.IS_ADMIN === true; }
+        // الكتابة مسموحة فقط من لوحة الإدارة وبعد التحقق الكامل من الصلاحية.
+        // صفحة الزائر لا تكتب إطلاقاً (وقواعد Firebase ترفضها أيضاً كطبقة ثانية).
+        function canWriteData(){
+            return window.APP_ROLE === 'admin'
+                && window.IS_ADMIN === true
+                && window.ADMIN_VERIFIED === true
+                && !!window.AUTH_USER;
+        }
+        window.canWriteData = canWriteData;
         function saveData(){
-            try { localStorage.setItem('collegeAppData', JSON.stringify(appData)); } catch(e) { console.warn('localStorage save failed', e); }
-            if(!canWriteData()){ console.warn('Blocked client write: admin session is not authorized.'); return Promise.reject(new Error('UNAUTHORIZED')); }
+            try {
+                const serialized = JSON.stringify(appData);
+                // حد أقصى تقريبي لحجم البيانات لمنع إغراق قاعدة البيانات
+                if(serialized.length > 8 * 1024 * 1024){
+                    alert('حجم البيانات كبير جداً (أكثر من 8 ميجابايت). احذف بعض المرفقات الكبيرة قبل الحفظ.');
+                    return Promise.reject(new Error('PAYLOAD_TOO_LARGE'));
+                }
+                localStorage.setItem('collegeAppData', serialized);
+            } catch(e) { console.warn('localStorage save failed', e); }
+            if(!canWriteData()){
+                console.warn('Blocked client write: admin session is not authorized.');
+                if(window.APP_ROLE === 'admin' && typeof window.notifyUnauthorized === 'function') window.notifyUnauthorized();
+                return Promise.reject(new Error('UNAUTHORIZED'));
+            }
             if(!db) return Promise.resolve();
             return db.ref('appData').set(prepareAppDataForFirebase(appData)).catch(err => {
                 console.error('Firebase save failed:', err);
@@ -239,6 +283,33 @@
             saveData();
             if(afterDelete)afterDelete();else render();
         }
+
+        // تُستدعى من admin.js بعد نجاح التحقق من الصلاحية
+        window.enableEditMode = function(){
+            if(window.APP_ROLE !== 'admin') return;
+            if(window.IS_ADMIN !== true || window.ADMIN_VERIFIED !== true) return;
+            isEditMode = true;
+        };
+        window.disableEditMode = function(){ isEditMode = false; };
+
+        // كانت هذه الدالة مستدعاة في ستة مواضع لكنها غير معرّفة إطلاقاً،
+        // فكانت قوائم اختيار المادة (الواجبات/الاختبارات/التسجيلات/التقدم) تتعطل.
+        function getSubjectsList(){
+            const seen = new Set();
+            const out = [];
+            const add = (v) => {
+                const name = String(v ?? '').trim();
+                if(!name || seen.has(name)) return;
+                seen.add(name); out.push(name);
+            };
+            if(Array.isArray(appData.subjects)) appData.subjects.forEach(add);
+            // المواد المستخدمة فعلياً في الشعبة الحالية حتى لو لم تُسجَّل في القائمة العامة
+            Object.keys((appData.progress && appData.progress[selectedSection]) || {}).forEach(add);
+            Object.keys((appData.liveLinks && appData.liveLinks[selectedSection]) || {}).forEach(add);
+            Object.keys((appData.recordingsLinks && appData.recordingsLinks[selectedSection]) || {}).forEach(add);
+            return out;
+        }
+        window.getSubjectsList = getSubjectsList;
 
         function loadDataFromFirebase(){
             if(firebaseLoadStarted || !db) return;
@@ -308,7 +379,54 @@
         }
         applyStoredSettings();
 
-        function escapeHtml(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+        function escapeHtml(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/`/g,'&#96;');}
+        // اختصار للاستخدام داخل قوالب HTML
+        function esc(v){ return escapeHtml(v); }
+        // نص متعدد الأسطر: يحافظ على فواصل الأسطر عند العرض
+        function escMultiline(v){ return escapeHtml(v); }
+        // تهريب آمن لسلسلة نصية توضع داخل سمة onclick="fn('...')"
+        function jsAttr(v){
+            return escapeHtml(String(v ?? '')
+                .replace(/\\/g,'\\\\')
+                .replace(/'/g,"\\'")
+                .replace(/"/g,'\\"')
+                .replace(/\r/g,'')
+                .replace(/\n/g,'\\n'));
+        }
+        // تنقية الروابط: يمنع javascript: و data: الخطرة (مثل svg) ويسمح فقط بالمخططات الآمنة
+        const SAFE_URL_SCHEMES = ['http:','https:','mailto:','tel:','sms:','whatsapp:'];
+        function safeUrl(v){
+            let raw = String(v ?? '').trim();
+            if(!raw) return '';
+            // إزالة محارف التحكم التي تُستخدم للتحايل على الفلاتر
+            raw = raw.replace(/[\u0000-\u001F\u007F\u200B-\u200D\uFEFF]/g,'');
+            if(!raw) return '';
+            const lower = raw.toLowerCase();
+            // صور base64 مسموحة (ما عدا svg لأنها تستطيع تنفيذ سكربت)
+            if(lower.startsWith('data:')){
+                return /^data:image\/(png|jpe?g|gif|webp|bmp|avif);base64,[a-z0-9+/=\s]*$/i.test(raw) ? raw : '';
+            }
+            if(lower.startsWith('blob:')) return raw;
+            // روابط نسبية أو مرساة
+            if(/^[#/?]/.test(raw)) return raw;
+            if(/^[a-z][a-z0-9+.-]*:/i.test(raw)){
+                const scheme = lower.slice(0, lower.indexOf(':')+1);
+                return SAFE_URL_SCHEMES.includes(scheme) ? raw : '';
+            }
+            // لا يوجد مخطط: نفترض https
+            return 'https://' + raw;
+        }
+        function safeUrlAttr(v){ return escapeHtml(safeUrl(v)); }
+        // مصدر صورة آمن (data:image أو http/https فقط)
+        function safeImgSrc(v){
+            const u = safeUrl(v);
+            if(!u) return '';
+            return /^(https?:|data:image\/|blob:)/i.test(u) ? escapeHtml(u) : '';
+        }
+        // تنقية رقم الهاتف قبل وضعه في wa.me / tel:
+        function safePhone(v){ return String(v ?? '').replace(/[^0-9+]/g,''); }
+        window.safeUrl = safeUrl;
+        window.escapeHtml = escapeHtml;
         function getSectionLabel(i){return (appData.sectionNames&&appData.sectionNames[i-1])||`شعبة ${i}`;}
         function renderSectionManagement(){
             const box=document.getElementById('section-management');if(!box||!window.IS_OWNER){if(box)box.innerHTML='';return;}box.innerHTML='';
@@ -336,11 +454,13 @@
                 sectionHistory.push(currentView);
             }
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-            const activeNav = Array.from(document.querySelectorAll('.nav-item')).find(el => el.getAttribute('onclick').includes(sectionId));
+            const activeNav = Array.from(document.querySelectorAll('.nav-item')).find(el => (el.getAttribute('onclick') || '').includes(sectionId));
             if(activeNav) activeNav.classList.add('active');
 
             document.querySelectorAll('.content-area').forEach(el => el.classList.remove('active'));
-            document.getElementById(sectionId).classList.add('active');
+            const target = document.getElementById(sectionId);
+            if(!target) return;
+            target.classList.add('active');
             
             currentView = sectionId;
             const titles = {
@@ -362,7 +482,8 @@
                 'weekly-schedule': 'الجدول الأسبوعي',
                 'access-logs': 'سجل الدخول'
             };
-            document.getElementById('page-heading').innerText = titles[sectionId];
+            const heading = document.getElementById('page-heading');
+            if(heading) heading.innerText = titles[sectionId] || '';
             render();
         }
 
@@ -390,8 +511,10 @@
         // --- RENDER FUNCTIONS ---
 
         function render() {
-            renderDate();
-            renderSectionSelectors();
+            // لا تُصيّر شيئاً قبل أن تُحقن واجهة الإدارة بعد التحقق من الصلاحية
+            if(window.APP_ROLE === 'admin' && window.ADMIN_VERIFIED !== true) return;
+            try { renderDate(); } catch(e){ console.warn('renderDate', e); }
+            try { renderSectionSelectors(); } catch(e){ console.warn('renderSectionSelectors', e); }
             if(currentView === 'progress') renderProgress();
             if(currentView === 'recordings') renderRecordings();
             if(currentView === 'assignments') renderAssignments();
@@ -409,14 +532,35 @@
             if(currentView === 'about-team') renderTeam();
             if(currentView === 'access-logs' && window.IS_OWNER && window.renderAccessLogs) window.renderAccessLogs();
             hideEmptyPublicActions();
+            lockDownViewerUI();
         }
+        // إزالة فعلية (وليست إخفاء CSS) لكل أدوات التعديل من صفحة الزائر.
+        // لو تعطّل ملف الـ CSS أو عبث أحدهم بالأصناف، لا يبقى شيء قابل للاستخدام.
+        function lockDownViewerUI(){
+            if(window.APP_ROLE === 'admin') return;
+            try{
+                document.querySelectorAll(
+                    '.add-new-container, .editable-field, .btn-delete, .btn-add, .btn-save, .admin-only, .owner-only-panel, .owner-only-nav, .owner-only-control, .manage-subjects-btn, .admin-signout, .schedule-add, .schedule-actions'
+                ).forEach(el => el.remove());
+                // أي حقل بقي وهو مربوط بدالة تعديل/حذف يُزال أيضاً
+                document.querySelectorAll('input, textarea, select').forEach(el => {
+                    const handler = (el.getAttribute('onchange') || '') + (el.getAttribute('oninput') || '');
+                    if(/^\s*(update|rename|delete|remove|add|toggleWeekly|grant|revoke)/i.test(handler)) el.remove();
+                });
+                document.body.classList.remove('edit-mode','owner-mode','admin-authorized');
+                document.body.classList.add('view-mode');
+            }catch(e){ console.warn('lockDownViewerUI', e); }
+        }
+        window.lockDownViewerUI = lockDownViewerUI;
+
         function hideEmptyPublicActions(){if(window.IS_ADMIN)return;document.querySelectorAll('.content-area a').forEach(a=>{const h=(a.getAttribute('href')||'').trim();if(!h||h==='#'||h.toLowerCase()==='javascript:void(0)')a.style.display='none';});document.querySelectorAll('.content-area .optional-action[data-empty="true"]').forEach(e=>e.style.display='none');}
 
 
         function renderDate() {
+            const el = document.getElementById('current-date');
+            if(!el) return;
             const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-            const date = new Date().toLocaleDateString('ar-EG', options);
-            document.getElementById('current-date').innerText = date;
+            el.innerText = new Date().toLocaleDateString('ar-EG', options);
         }
 
         function renderSectionSelectors() {
@@ -458,23 +602,23 @@
                 card.className = 'data-card';
                 card.innerHTML = `
                     <div class="data-header">
-                        <h3>${sub}</h3>
-                        <div class="lesson-name editable-value">${data.lessonName && data.lessonName.trim() ? data.lessonName : ''}</div>
-                        <div class="progress-text editable-value">درس ${data.current} من ${data.total}</div>
+                        <h3>${esc(sub)}</h3>
+                        <div class="lesson-name editable-value rich-text">${esc(data.lessonName && data.lessonName.trim() ? data.lessonName : '')}</div>
+                        <div class="progress-text editable-value">درس ${esc(data.current)} من ${esc(data.total)}</div>
                     </div>
                     <div class="editable-field" style="margin-bottom: 12px;">
                         <label>اسم الدرس الحالي (اختياري):</label>
-                        <input type="text" class="editable-input" value="${data.lessonName || ''}" onchange="updateProgress('${sub}', 'lessonName', this.value)">
+                        <input type="text" class="editable-input" value="${esc(data.lessonName || '')}" onchange="updateProgress('${jsAttr(sub)}', 'lessonName', this.value)">
                         <label>الدرس الحالي (رقم):</label>
-                        <input type="number" class="editable-input" value="${data.current}" onchange="updateProgress('${sub}', 'current', this.value)">
+                        <input type="number" class="editable-input" value="${esc(data.current)}" onchange="updateProgress('${jsAttr(sub)}', 'current', this.value)">
                         <label>إجمالي الدروس:</label>
-                        <input type="number" class="editable-input" value="${data.total}" onchange="updateProgress('${sub}', 'total', this.value)">
+                        <input type="number" class="editable-input" value="${esc(data.total)}" onchange="updateProgress('${jsAttr(sub)}', 'total', this.value)">
                         <div style="margin-top:8px; display:flex; gap:8px;">
-                            <button class="btn-sm btn-delete" onclick="removeSubjectFromSection('${sub}')">حذف المادة من الشعبة</button>
+                            <button class="btn-sm btn-delete" onclick="removeSubjectFromSection('${jsAttr(sub)}')">حذف المادة من الشعبة</button>
                         </div>
                     </div>
                     <div class="progress-container">
-                        <div class="progress-bar" style="width: ${percent}%"></div>
+                        <div class="progress-bar" style="width: ${Number(percent)||0}%"></div>
                     </div>
                     <!-- Attachments for this subject -->
                     <div style="margin-top:12px;">
@@ -515,7 +659,7 @@
             // available subjects are those in the normalized subjects list not present in this section
             const available = getSubjectsList().filter(s => !subjectsInSection.includes(s));
             let optionsHtml = '';
-            available.forEach(a => { optionsHtml += `<option value="${a}">${a}</option>`; });
+            available.forEach(a => { optionsHtml += `<option value="${esc(a)}">${esc(a)}</option>`; });
             addBox.innerHTML = `
                 <h4>إضافة مادة موجودة للشعبة الحالية</h4>
                 ${available.length === 0 ? '<p style="color:var(--text-light);">لا توجد مواد متاحة للإضافة.</p>' : `<select id="add-existing-subject-select" class="editable-input" style="margin-bottom:8px;">${optionsHtml}</select><button class="btn-sm btn-add" onclick="addExistingSubjectToSection()">أضف المادة للشعبة</button>`}
@@ -572,7 +716,7 @@
             if(subjEl) {
                 const prev = subjEl.value || 'all';
                 let opts = '<option value="all">كل المواد</option>';
-                getSubjectsList().forEach(s => { opts += `<option value="${s}">${s}</option>`; });
+                getSubjectsList().forEach(s => { opts += `<option value="${esc(s)}">${esc(s)}</option>`; });
                 subjEl.innerHTML = opts;
                 subjEl.value = prev;
             }
@@ -580,7 +724,7 @@
             const newSubEl = document.getElementById('new-assignment-subject');
             if(newSubEl) {
                 let opts2 = '<option value="">--- اختر مادة ---</option>';
-                getSubjectsList().forEach(s => { opts2 += `<option value="${s}">${s}</option>`; });
+                getSubjectsList().forEach(s => { opts2 += `<option value="${esc(s)}">${esc(s)}</option>`; });
                 newSubEl.innerHTML = opts2;
             }
             if(mode === 'date') {
@@ -620,7 +764,7 @@
                 const div = document.createElement('div');
                 div.className = `task-item ${task.done ? 'completed' : ''}`;
                 const dateLabel = task.date ? new Date(task.date).toLocaleDateString('ar-EG') : '';
-                const subjectHtml = task.subject ? `<div class="task-subject">${task.subject}</div>` : '';
+                const subjectHtml = task.subject ? `<div class="task-subject">${esc(task.subject)}</div>` : '';
                 
                 // Attachment(s) HTML (support multiple)
                 let attachmentHtml = '';
@@ -630,22 +774,22 @@
                             attachmentHtml += `
                                 <div style="margin-top:8px; padding:8px; background:#f5f5f5; border-radius:6px;">
                                     <strong style="color:#666; font-size:0.9rem;">📷 صورة:</strong>
-                                    <img src="${att.data}" style="max-width:100%; max-height:200px; border-radius:6px; margin-top:6px; cursor:pointer;" onclick="viewImage('${att.data}')">
+                                    <img src="${safeImgSrc(att.data)}" style="max-width:100%; max-height:200px; border-radius:6px; margin-top:6px; cursor:pointer;" onclick="viewAttachmentImage('assignment', ${Number(index)}, ${Number(ai)})">
                                 </div>
                             `;
                         } else if(att.type === 'link') {
                             attachmentHtml += `
                                 <div style="margin-top:8px; padding:8px; background:#f5f5f5; border-radius:6px;">
                                     <strong style="color:#666; font-size:0.9rem;">🔗 رابط:</strong>
-                                    <a href="${att.url}" target="_blank" style="display:inline-block; margin-right:8px; color:#0066cc; text-decoration:none;">فتح الرابط</a>
+                                    <a href="${safeUrlAttr(att.url)}" target="_blank" rel="noopener noreferrer nofollow" style="display:inline-block; margin-right:8px; color:#0066cc; text-decoration:none;">فتح الرابط</a>
                                 </div>
                             `;
                         } else if(att.type === 'file') {
                             attachmentHtml += `
                                 <div style="margin-top:8px; padding:8px; background:#f5f5f5; border-radius:6px;">
                                     <strong style="color:#666; font-size:0.9rem;">📎 ملف:</strong>
-                                    <button class="btn-sm" style="background:#FF6B6B; color:white; margin-right:8px;" onclick="downloadAttachment('assignment', ${index}, ${ai})">⬇️ تحميل</button>
-                                    <span style="color:#999; font-size:0.85rem;">${att.name || att.url || 'ملف'}</span>
+                                    <button class="btn-sm" style="background:#FF6B6B; color:white; margin-right:8px;" onclick="downloadAttachment('assignment', ${Number(index)}, ${Number(ai)})">⬇️ تحميل</button>
+                                    <span style="color:#999; font-size:0.85rem;">${esc(att.name || att.url || 'ملف')}</span>
                                 </div>
                             `;
                         }
@@ -655,10 +799,10 @@
                 div.innerHTML = `
                     <div style="flex:1">
                         ${subjectHtml}
-                        <div class="task-desc"><span class="editable-value">${task.text}</span></div>
+                        <div class="task-desc"><span class="editable-value rich-text">${esc(task.text)}</span></div>
                                     ${attachmentHtml}
-                        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:6px;"><small style="color:var(--text-light);">${dateLabel}</small></div>
-                        <input type="text" class="editable-field editable-input" value="${task.text}" onchange="updateTaskText(${index}, this.value)">
+                        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:6px;"><small style="color:var(--text-light);">${esc(dateLabel)}</small></div>
+                        <textarea class="editable-field editable-input" rows="3" onchange="updateTaskText(${Number(index)}, this.value)">${esc(task.text)}</textarea>
                     </div>
                     <button class="btn-sm btn-delete" onclick="deleteTask(${index})">حذف</button>
                 `;
@@ -680,8 +824,8 @@
                 channelBox.innerHTML = `
                     <div style="padding:10px; background:#fff; border-radius:8px; border:1px solid #eef2ff;">
                         <strong>رابط قناة التسجيلات:</strong>
-                        ${ch ? `<a href="${ch}" target="_blank" style="margin-inline-start:8px; display:inline-block;">فتح القناة</a>` : '<span style="color:var(--text-light); margin-inline-start:8px;">لم يتم تعيين رابط القناة بعد</span>'}
-                        ${isEditMode ? `<div style="margin-top:8px;"><input type="text" id="global-recordings-channel" class="editable-input" placeholder="رابط قناة التسجيلات" value="${ch}" onchange="updateRecordingsChannelLink(this.value)"></div>` : ''}
+                        ${ch ? `<a href="${safeUrlAttr(ch)}" target="_blank" rel="noopener noreferrer" style="margin-inline-start:8px; display:inline-block;">فتح القناة</a>` : '<span style="color:var(--text-light); margin-inline-start:8px;">لم يتم تعيين رابط القناة بعد</span>'}
+                        ${isEditMode ? `<div style="margin-top:8px;"><input type="text" id="global-recordings-channel" class="editable-input" placeholder="رابط قناة التسجيلات" value="${esc(ch)}" onchange="updateRecordingsChannelLink(this.value)"></div>` : ''}
                     </div>
                 `;
             }
@@ -696,7 +840,7 @@
             if(subjEl) {
                 const prev = subjEl.value || 'all';
                 let opts = '<option value="all">كل المواد</option>';
-                getSubjectsList().forEach(s => { opts += `<option value="${s}">${s}</option>`; });
+                getSubjectsList().forEach(s => { opts += `<option value="${esc(s)}">${esc(s)}</option>`; });
                 subjEl.innerHTML = opts;
                 subjEl.value = prev;
             }
@@ -705,7 +849,7 @@
             const newSubEl = document.getElementById('new-record-subject');
             if(newSubEl) {
                 let opts2 = '<option value="">--- اختر مادة ---</option>';
-                getSubjectsList().forEach(s => { opts2 += `<option value="${s}">${s}</option>`; });
+                getSubjectsList().forEach(s => { opts2 += `<option value="${esc(s)}">${esc(s)}</option>`; });
                 newSubEl.innerHTML = opts2;
             }
 
@@ -742,11 +886,11 @@
                     const dateLabel = r.date ? new Date(r.date).toLocaleDateString('ar-EG') : '';
                     row.innerHTML = `
                         <div class="data-header">
-                            <h3>${r.subject || 'عام'}</h3>
-                            <div class="lesson-name">${r.title}</div>
-                            <div class="progress-text">${dateLabel}</div>
+                            <h3>${esc(r.subject || 'عام')}</h3>
+                            <div class="lesson-name rich-text">${esc(r.title)}</div>
+                            <div class="progress-text">${esc(dateLabel)}</div>
                         </div>
-                        <div style="margin-top:8px;"><a href="${r.link}" target="_blank">فتح التسجيل على يوتيوب</a></div>
+                        <div style="margin-top:8px;"><a href="${safeUrlAttr(r.link)}" target="_blank" rel="noopener noreferrer">فتح التسجيل على يوتيوب</a></div>
                         <div style="margin-top:8px; display:flex; gap:8px;">
                             <button class="btn-sm btn-delete" onclick="deleteRecording(${origIndex})">حذف</button>
                         </div>
@@ -764,9 +908,9 @@
                 box.className = 'add-new-container';
                 box.style.marginTop = '12px';
                 box.innerHTML = `
-                    <h4>رابط كل التسجيلات للمادة ${selectedSubject}</h4>
-                    ${subjectLink ? `<a href="${subjectLink}" target="_blank">فتح رابط كل التسجيلات (رابط المادة)</a>` : (link ? `<a href="${link}" target="_blank">فتح رابط قناة التسجيلات (افتراضي)</a>` : '<p style="color:var(--text-light);">لا يوجد رابط شامل لهذه المادة أو للقناة.</p>')}
-                    ${isEditMode ? `<label style="margin-top:8px; color:var(--text-light);">تعريف/تعديل رابط المادة (سيُستخدم بدل القناة):</label><input type="text" id="edit-recordings-link" class="editable-input" value="${subjectLink || ''}" onchange="updateRecordingsLink('${selectedSubject}', this.value)">` : ''}
+                    <h4>رابط كل التسجيلات للمادة ${esc(selectedSubject)}</h4>
+                    ${subjectLink ? `<a href="${safeUrlAttr(subjectLink)}" target="_blank" rel="noopener noreferrer">فتح رابط كل التسجيلات (رابط المادة)</a>` : (link ? `<a href="${safeUrlAttr(link)}" target="_blank" rel="noopener noreferrer">فتح رابط قناة التسجيلات (افتراضي)</a>` : '<p style="color:var(--text-light);">لا يوجد رابط شامل لهذه المادة أو للقناة.</p>')}
+                    ${isEditMode ? `<label style="margin-top:8px; color:var(--text-light);">تعريف/تعديل رابط المادة (سيُستخدم بدل القناة):</label><input type="text" id="edit-recordings-link" class="editable-input" value="${esc(subjectLink || '')}" onchange="updateRecordingsLink('${jsAttr(selectedSubject)}', this.value)">` : ''}
                 `;
                 container.appendChild(box);
             }
@@ -872,7 +1016,7 @@
                 };
                 const preview = document.getElementById('attachment-image-preview');
                 if(preview) {
-                    preview.innerHTML = `<img src="${event.target.result}" style="max-width:100%; border-radius:8px;">`;
+                    preview.innerHTML = `<img src="${safeImgSrc(event.target.result)}" style="max-width:100%; border-radius:8px;">`;
                 }
                 console.log('Image attachment set');
             };
@@ -902,7 +1046,7 @@
                 };
                 const preview = document.getElementById('attachment-file-preview');
                 if(preview) {
-                    preview.innerHTML = `<strong>✓ تم اختيار الملف:</strong> ${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
+                    preview.innerHTML = `<strong>✓ تم اختيار الملف:</strong> ${esc(file.name)} (${(file.size / 1024).toFixed(2)} KB)`;
                 }
                 console.log('File attachment set');
             };
@@ -936,9 +1080,9 @@
             list.innerHTML = '';
             newAssignmentAttachments.forEach((att, idx) => {
                 let html = '';
-                if(att.type === 'image') html = `<div style="padding:8px; background:#fff; border-radius:6px; margin-bottom:6px;"><img src="${att.data}" style="max-width:120px; display:block; margin-bottom:6px;"><button class="btn-sm btn-delete" onclick="removeNewAssignmentAttachment(${idx})">إزالة</button></div>`;
-                else if(att.type === 'file') html = `<div style="padding:8px; background:#fff; border-radius:6px; margin-bottom:6px;"><strong>${att.name}</strong> <button class="btn-sm" style="background:#FF6B6B; color:#fff; margin-right:8px;" onclick="downloadNewAssignmentFile(${idx})">⬇️ تحميل</button><button class="btn-sm btn-delete" onclick="removeNewAssignmentAttachment(${idx})">إزالة</button></div>`;
-                else if(att.type === 'link') html = `<div style="padding:8px; background:#fff; border-radius:6px; margin-bottom:6px;"><a href="${att.url}" target="_blank">${att.url}</a> <button class="btn-sm btn-delete" onclick="removeNewAssignmentAttachment(${idx})">إزالة</button></div>`;
+                if(att.type === 'image') html = `<div style="padding:8px; background:#fff; border-radius:6px; margin-bottom:6px;"><img src="${safeImgSrc(att.data)}" style="max-width:120px; display:block; margin-bottom:6px;"><button class="btn-sm btn-delete" onclick="removeNewAssignmentAttachment(${Number(idx)})">إزالة</button></div>`;
+                else if(att.type === 'file') html = `<div style="padding:8px; background:#fff; border-radius:6px; margin-bottom:6px;"><strong>${esc(att.name)}</strong> <button class="btn-sm" style="background:#FF6B6B; color:#fff; margin-right:8px;" onclick="downloadNewAssignmentFile(${Number(idx)})">⬇️ تحميل</button><button class="btn-sm btn-delete" onclick="removeNewAssignmentAttachment(${Number(idx)})">إزالة</button></div>`;
+                else if(att.type === 'link') html = `<div style="padding:8px; background:#fff; border-radius:6px; margin-bottom:6px;"><a href="${safeUrlAttr(att.url)}" target="_blank" rel="noopener noreferrer">${esc(att.url)}</a> <button class="btn-sm btn-delete" onclick="removeNewAssignmentAttachment(${Number(idx)})">إزالة</button></div>`;
                 const wr = document.createElement('div'); wr.innerHTML = html; list.appendChild(wr);
             });
         }
@@ -990,9 +1134,9 @@
             list.innerHTML = '';
             newNewsAttachments.forEach((att, idx) => {
                 let html = '';
-                if(att.type === 'image') html = `<div style="padding:8px; background:#fff; border-radius:6px; margin-bottom:6px;"><img src="${att.data}" style="max-width:120px; display:block; margin-bottom:6px;"><button class="btn-sm btn-delete" onclick="removeNewNewsAttachment(${idx})">إزالة</button></div>`;
-                else if(att.type === 'file') html = `<div style="padding:8px; background:#fff; border-radius:6px; margin-bottom:6px;"><strong>${att.name}</strong> <button class="btn-sm" style="background:#FF6B6B; color:#fff; margin-right:8px;" onclick="downloadNewNewsFile(${idx})">⬇️ تحميل</button><button class="btn-sm btn-delete" onclick="removeNewNewsAttachment(${idx})">إزالة</button></div>`;
-                else if(att.type === 'link') html = `<div style="padding:8px; background:#fff; border-radius:6px; margin-bottom:6px;"><a href="${att.url}" target="_blank">${att.url}</a> <button class="btn-sm btn-delete" onclick="removeNewNewsAttachment(${idx})">إزالة</button></div>`;
+                if(att.type === 'image') html = `<div style="padding:8px; background:#fff; border-radius:6px; margin-bottom:6px;"><img src="${safeImgSrc(att.data)}" style="max-width:120px; display:block; margin-bottom:6px;"><button class="btn-sm btn-delete" onclick="removeNewNewsAttachment(${Number(idx)})">إزالة</button></div>`;
+                else if(att.type === 'file') html = `<div style="padding:8px; background:#fff; border-radius:6px; margin-bottom:6px;"><strong>${esc(att.name)}</strong> <button class="btn-sm" style="background:#FF6B6B; color:#fff; margin-right:8px;" onclick="downloadNewNewsFile(${Number(idx)})">⬇️ تحميل</button><button class="btn-sm btn-delete" onclick="removeNewNewsAttachment(${Number(idx)})">إزالة</button></div>`;
+                else if(att.type === 'link') html = `<div style="padding:8px; background:#fff; border-radius:6px; margin-bottom:6px;"><a href="${safeUrlAttr(att.url)}" target="_blank" rel="noopener noreferrer">${esc(att.url)}</a> <button class="btn-sm btn-delete" onclick="removeNewNewsAttachment(${Number(idx)})">إزالة</button></div>`;
                 const wr = document.createElement('div'); wr.innerHTML = html; list.appendChild(wr);
             });
         }
@@ -1015,10 +1159,10 @@
         }
 
         function handleLinkImageAttachment(e) {
-            const file = e.target.files[0]; if(!file) return; const reader = new FileReader(); reader.onload = function(ev){ currentLinkAttachment = { type:'image', name:file.name, data: ev.target.result }; const preview = document.getElementById('link-attachment-image-preview'); if(preview) preview.innerHTML = `<img src="${ev.target.result}" style="max-width:100%; border-radius:8px;">`; }; reader.readAsDataURL(file);
+            const file = e.target.files[0]; if(!file) return; const reader = new FileReader(); reader.onload = function(ev){ currentLinkAttachment = { type:'image', name:file.name, data: ev.target.result }; const preview = document.getElementById('link-attachment-image-preview'); if(preview) preview.innerHTML = `<img src="${safeImgSrc(ev.target.result)}" style="max-width:100%; border-radius:8px;">`; }; reader.readAsDataURL(file);
         }
 
-        function handleLinkFileAttachment(e) { const file = e.target.files[0]; if(!file) return; const reader = new FileReader(); reader.onload = function(ev){ const binaryString = ev.target.result; let base64=''; const bytes = new Uint8Array(binaryString); for(let i=0;i<bytes.byteLength;i++) base64 += String.fromCharCode(bytes[i]); base64 = btoa(base64); currentLinkAttachment = { type:'file', name:file.name, size:file.size, mimeType:file.type, data: base64 }; const preview = document.getElementById('link-attachment-file-preview'); if(preview) preview.innerHTML = `<strong>✓ تم اختيار الملف:</strong> ${file.name} (${(file.size/1024).toFixed(2)} KB)`; }; reader.readAsArrayBuffer(file); }
+        function handleLinkFileAttachment(e) { const file = e.target.files[0]; if(!file) return; const reader = new FileReader(); reader.onload = function(ev){ const binaryString = ev.target.result; let base64=''; const bytes = new Uint8Array(binaryString); for(let i=0;i<bytes.byteLength;i++) base64 += String.fromCharCode(bytes[i]); base64 = btoa(base64); currentLinkAttachment = { type:'file', name:file.name, size:file.size, mimeType:file.type, data: base64 }; const preview = document.getElementById('link-attachment-file-preview'); if(preview) preview.innerHTML = `<strong>✓ تم اختيار الملف:</strong> ${esc(file.name)} (${(file.size/1024).toFixed(2)} KB)`; }; reader.readAsArrayBuffer(file); }
 
         function clearLinkAttachment() { currentLinkAttachment = null; const imgSec=document.getElementById('link-attachment-image-section'); const linkSec=document.getElementById('link-attachment-link-section'); const fileSec=document.getElementById('link-attachment-file-section'); if(imgSec) imgSec.style.display='none'; if(linkSec) linkSec.style.display='none'; if(fileSec) fileSec.style.display='none'; const ii=document.getElementById('link-attachment-image-input'); const fi=document.getElementById('link-attachment-file-input'); const li=document.getElementById('link-attachment-link-input'); if(ii) ii.value=''; if(fi) fi.value=''; if(li) li.value=''; const ip=document.getElementById('link-attachment-image-preview'); const fp=document.getElementById('link-attachment-file-preview'); if(ip) ip.innerHTML=''; if(fp) fp.innerHTML=''; }
 
@@ -1031,7 +1175,7 @@
             clearLinkAttachment(); renderNewLinkAttachmentsList();
         }
 
-        function renderNewLinkAttachmentsList() { const list = document.getElementById('new-link-attachments-list'); if(!list) return; if(newLinkAttachments.length===0){ list.innerHTML = '<small style="color:var(--text-light);">لا توجد ملحقات مضافة</small>'; return; } list.innerHTML=''; newLinkAttachments.forEach((att, idx)=>{ let html=''; if(att.type==='image') html = `<div style="padding:8px; background:#fff; border-radius:6px; margin-bottom:6px;"><img src="${att.data}" style="max-width:120px; display:block; margin-bottom:6px;"><button class="btn-sm btn-delete" onclick="removeNewLinkAttachment(${idx})">إزالة</button></div>`; else if(att.type==='file') html = `<div style="padding:8px; background:#fff; border-radius:6px; margin-bottom:6px;"><strong>${att.name}</strong> <button class="btn-sm" style="background:#FF6B6B; color:#fff; margin-right:8px;" onclick="downloadNewLinkFile(${idx})">⬇️ تحميل</button><button class="btn-sm btn-delete" onclick="removeNewLinkAttachment(${idx})">إزالة</button></div>`; else if(att.type==='link') html = `<div style="padding:8px; background:#fff; border-radius:6px; margin-bottom:6px;"><a href="${att.url}" target="_blank">${att.url}</a> <button class="btn-sm btn-delete" onclick="removeNewLinkAttachment(${idx})">إزالة</button></div>`; const wr=document.createElement('div'); wr.innerHTML=html; list.appendChild(wr); }); }
+        function renderNewLinkAttachmentsList() { const list = document.getElementById('new-link-attachments-list'); if(!list) return; if(newLinkAttachments.length===0){ list.innerHTML = '<small style="color:var(--text-light);">لا توجد ملحقات مضافة</small>'; return; } list.innerHTML=''; newLinkAttachments.forEach((att, idx)=>{ let html=''; if(att.type==='image') html = `<div style="padding:8px; background:#fff; border-radius:6px; margin-bottom:6px;"><img src="${safeImgSrc(att.data)}" style="max-width:120px; display:block; margin-bottom:6px;"><button class="btn-sm btn-delete" onclick="removeNewLinkAttachment(${Number(idx)})">إزالة</button></div>`; else if(att.type==='file') html = `<div style="padding:8px; background:#fff; border-radius:6px; margin-bottom:6px;"><strong>${esc(att.name)}</strong> <button class="btn-sm" style="background:#FF6B6B; color:#fff; margin-right:8px;" onclick="downloadNewLinkFile(${Number(idx)})">⬇️ تحميل</button><button class="btn-sm btn-delete" onclick="removeNewLinkAttachment(${Number(idx)})">إزالة</button></div>`; else if(att.type==='link') html = `<div style="padding:8px; background:#fff; border-radius:6px; margin-bottom:6px;"><a href="${safeUrlAttr(att.url)}" target="_blank" rel="noopener noreferrer">${esc(att.url)}</a> <button class="btn-sm btn-delete" onclick="removeNewLinkAttachment(${Number(idx)})">إزالة</button></div>`; const wr=document.createElement('div'); wr.innerHTML=html; list.appendChild(wr); }); }
 
         function removeNewLinkAttachment(i){ newLinkAttachments.splice(i,1); renderNewLinkAttachmentsList(); }
 
@@ -1091,7 +1235,7 @@
             modal.style.cssText = 'position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center; z-index:9999;';
             modal.innerHTML = `
                 <div style="position:relative; max-width:90vw; max-height:90vh;">
-                    <img src="${imageSrc}" style="max-width:100%; max-height:100%; border-radius:8px;">
+                    <img src="${safeImgSrc(imageSrc)}" style="max-width:100%; max-height:100%; border-radius:8px;">
                     <button onclick="this.parentElement.parentElement.remove()" style="position:absolute; top:10px; right:10px; background:#fff; border:none; width:40px; height:40px; border-radius:50%; cursor:pointer; font-size:20px;">✕</button>
                 </div>
             `;
@@ -1133,7 +1277,7 @@
         const currentProgressAttachment = {}; // keyed by subject
 
         function escapeId(s){ return String(s).replace(/[^a-z0-9]/gi, '_'); }
-        function escapeJs(s){ return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+        function escapeJs(s){ return jsAttr(s); }
 
         function selectProgressAttachmentType(subject, type) {
             const id = escapeId(subject);
@@ -1162,7 +1306,7 @@
             reader.onload = function(ev){
                 currentProgressAttachment[subject] = { type: 'image', name: file.name, data: ev.target.result };
                 const pv = document.getElementById(`progress-attachment-image-preview-${escapeId(subject)}`);
-                if(pv) pv.innerHTML = `<img src="${ev.target.result}" style="max-width:120px; border-radius:6px;">`;
+                if(pv) pv.innerHTML = `<img src="${safeImgSrc(ev.target.result)}" style="max-width:120px; border-radius:6px;">`;
             };
             reader.readAsDataURL(file);
         }
@@ -1178,7 +1322,7 @@
                 base64 = btoa(base64);
                 currentProgressAttachment[subject] = { type: 'file', name: file.name, size: file.size, mimeType: file.type, data: base64 };
                 const pv = document.getElementById(`progress-attachment-file-preview-${escapeId(subject)}`);
-                if(pv) pv.innerHTML = `<strong>✓ تم اختيار الملف:</strong> ${file.name} (${(file.size/1024).toFixed(2)} KB)`;
+                if(pv) pv.innerHTML = `<strong>✓ تم اختيار الملف:</strong> ${esc(file.name)} (${(file.size/1024).toFixed(2)} KB)`;
             };
             reader.readAsArrayBuffer(file);
         }
@@ -1220,9 +1364,9 @@
             container.innerHTML = '';
             list.forEach((att, idx) => {
                 let html = '';
-                if(att.type === 'image') html = `<div style="display:inline-block; margin:6px; background:#fff; padding:6px; border-radius:6px;"><img src="${att.data}" style="max-width:100px; display:block; margin-bottom:6px;"><div style="text-align:center;"><button class="btn-sm btn-delete" onclick="removeProgressAttachment('${escapeJs(subject)}', ${idx})">إزالة</button></div></div>`;
-                else if(att.type === 'file') html = `<div style="padding:8px; background:#fff; border-radius:6px; margin-bottom:6px;"><strong>${att.name}</strong> <button class="btn-sm" style="background:#FF6B6B; color:#fff; margin-right:8px;" onclick="downloadProgressFile('${escapeJs(subject)}', ${idx})">⬇️ تحميل</button>${isEditMode?`<button class="btn-sm btn-delete" onclick="removeProgressAttachment('${escapeJs(subject)}', ${idx})">إزالة</button>`:''}</div>`;
-                else if(att.type === 'link') html = `<div style="padding:6px; background:#fff; border-radius:6px; margin-bottom:6px;"><a href="${att.url}" target="_blank">${att.url}</a> ${isEditMode?`<button class="btn-sm btn-delete" onclick="removeProgressAttachment('${escapeJs(subject)}', ${idx})">إزالة</button>`:''}</div>`;
+                if(att.type === 'image') html = `<div style="display:inline-block; margin:6px; background:#fff; padding:6px; border-radius:6px;"><img src="${safeImgSrc(att.data)}" style="max-width:100px; display:block; margin-bottom:6px;"><div style="text-align:center;"><button class="btn-sm btn-delete" onclick="removeProgressAttachment('${escapeJs(subject)}', ${idx})">إزالة</button></div></div>`;
+                else if(att.type === 'file') html = `<div style="padding:8px; background:#fff; border-radius:6px; margin-bottom:6px;"><strong>${esc(att.name)}</strong> <button class="btn-sm" style="background:#FF6B6B; color:#fff; margin-right:8px;" onclick="downloadProgressFile('${escapeJs(subject)}', ${Number(idx)})">⬇️ تحميل</button>${isEditMode?`<button class="btn-sm btn-delete" onclick="removeProgressAttachment('${escapeJs(subject)}', ${idx})">إزالة</button>`:''}</div>`;
+                else if(att.type === 'link') html = `<div style="padding:6px; background:#fff; border-radius:6px; margin-bottom:6px;"><a href="${safeUrlAttr(att.url)}" target="_blank" rel="noopener noreferrer">${esc(att.url)}</a> ${isEditMode?`<button class="btn-sm btn-delete" onclick="removeProgressAttachment('${escapeJs(subject)}', ${idx})">إزالة</button>`:''}</div>`;
                 const wr = document.createElement('div'); wr.innerHTML = html; container.appendChild(wr);
             });
         }
@@ -1254,14 +1398,14 @@
                 div.innerHTML = `
                     <div class="data-header">
                         <div>
-                            <h3 class="editable-value">${item.name}</h3>
-                            <input class="editable-field editable-input" value="${item.name}" onchange="updateSupport(${index}, 'name', this.value)">
-                            <p class="editable-value" style="color:gray; font-size:0.9rem">${item.role}</p>
-                            <input class="editable-field editable-input" value="${item.role}" onchange="updateSupport(${index}, 'role', this.value)">
+                            <h3 class="editable-value">${esc(item.name)}</h3>
+                            <input class="editable-field editable-input" value="${esc(item.name)}" onchange="updateSupport(${Number(index)}, 'name', this.value)">
+                            <p class="editable-value rich-text" style="color:gray; font-size:0.9rem">${esc(item.role)}</p>
+                            <input class="editable-field editable-input" value="${esc(item.role)}" onchange="updateSupport(${Number(index)}, 'role', this.value)">
                         </div>
                         <div style="text-align:left;">
-                            ${item.phone ? `<a href="https://wa.me/${item.phone}" class="btn-link editable-value">تواصل</a>` : ``}
-                            <input class="editable-field editable-input" value="${item.phone}" onchange="updateSupport(${index}, 'phone', this.value)">
+                            ${safePhone(item.phone) ? `<a href="https://wa.me/${esc(safePhone(item.phone).replace(/^\+/,''))}" target="_blank" rel="noopener noreferrer" class="btn-link editable-value">تواصل</a>` : ``}
+                            <input class="editable-field editable-input" value="${esc(item.phone)}" onchange="updateSupport(${Number(index)}, 'phone', this.value)">
                         </div>
                     </div>
                     <button class="btn-sm btn-delete" onclick="deleteSupport(${index})">حذف جهة الاتصال</button>
@@ -1296,13 +1440,13 @@
                 div.innerHTML = `
                     <div class="data-header">
                         <div>
-                            <h3 class="editable-value">${item.title}</h3>
-                            <input class="editable-field editable-input" value="${item.title}" onchange="updateSummary(${index}, 'title', this.value)">
+                            <h3 class="editable-value rich-text">${esc(item.title)}</h3>
+                            <input class="editable-field editable-input" value="${esc(item.title)}" onchange="updateSummary(${Number(index)}, 'title', this.value)">
                         </div>
-                        ${item.link ? `<a href="${item.link}" target="_blank" class="btn-link editable-value">تحميل ⬇️</a>` : ``}
+                        ${safeUrl(item.link) ? `<a href="${safeUrlAttr(item.link)}" target="_blank" rel="noopener noreferrer" class="btn-link editable-value">تحميل ⬇️</a>` : ``}
                     </div>
                     <div class="editable-field">
-                        <input class="editable-input" value="${item.link}" placeholder="رابط الملف" onchange="updateSummary(${index}, 'link', this.value)">
+                        <input class="editable-input" value="${esc(item.link)}" placeholder="رابط الملف" onchange="updateSummary(${Number(index)}, 'link', this.value)">
                     </div>
                     <button class="btn-sm btn-delete" onclick="deleteSummary(${index})">حذف الملف</button>
                 `;
@@ -1382,26 +1526,26 @@
                 div.className = 'data-card';
                 div.innerHTML = `
                     <div class="data-header">
-                        <h3 class="lesson-name">${sub}</h3>
-                        ${entry.link ? `<a href="${entry.link}" target="_blank" class="btn-link editable-value">دخول الحصة 🎉</a>` : '<span class="editable-value" style="color:gray">لا يوجد رابط</span>'}
-                        ${entry.note ? `<div class="editable-value" style="color:var(--text-light); margin-top:6px;">${entry.note}</div>` : ''}
-                        <p class="editable-value session-info">موعد الحصة: ${entry.from ? formatTime12(entry.from) : '--'} إلى ${entry.to ? formatTime12(entry.to) : '--'}</p>
+                        <h3 class="lesson-name">${esc(sub)}</h3>
+                        ${safeUrl(entry.link) ? `<a href="${safeUrlAttr(entry.link)}" target="_blank" rel="noopener noreferrer" class="btn-link editable-value">دخول الحصة 🎉</a>` : '<span class="editable-value" style="color:gray">لا يوجد رابط</span>'}
+                        ${entry.note ? `<div class="editable-value rich-text" style="color:var(--text-light); margin-top:6px;">${esc(entry.note)}</div>` : ''}
+                        <p class="editable-value session-info">موعد الحصة: ${esc(entry.from ? formatTime12(entry.from) : '--')} إلى ${esc(entry.to ? formatTime12(entry.to) : '--')}</p>
                     </div>
                     <div class="editable-field">
                         <label>اسم المادة:</label>
-                        <input type="text" class="editable-input" value="${sub}" onchange="renameLiveSubject('${escapeForJs(sub)}', this.value)">
+                        <input type="text" class="editable-input" value="${esc(sub)}" onchange="renameLiveSubject('${escapeForJs(sub)}', this.value)">
                         <label style="margin-top:8px;">رابط الحصة:</label>
-                        <input type="text" class="editable-input" value="${entry.link}" placeholder="الصق الرابط هنا" onchange="updateLiveLink('${escapeForJs(sub)}', 'link', this.value)">
+                        <input type="text" class="editable-input" value="${esc(entry.link)}" placeholder="الصق الرابط هنا" onchange="updateLiveLink('${escapeForJs(sub)}', 'link', this.value)">
                         <label style="margin-top:8px;">ملاحظة عن الحصة (اختياري):</label>
-                        <textarea class="editable-input" onchange="updateLiveLink('${escapeForJs(sub)}', 'note', this.value)" style="min-height:60px;">${entry.note || ''}</textarea>
+                        <textarea class="editable-input" onchange="updateLiveLink('${escapeForJs(sub)}', 'note', this.value)" style="min-height:60px;">${esc(entry.note || '')}</textarea>
                         <div style="display:flex; gap:10px; margin-top:8px;">
                             <div style="flex:1">
                                 <label>من:</label>
-                                <input type="time" class="editable-input" value="${entry.from}" onchange="updateLiveLink('${escapeForJs(sub)}', 'from', this.value)">
+                                <input type="time" class="editable-input" value="${esc(entry.from)}" onchange="updateLiveLink('${escapeForJs(sub)}', 'from', this.value)">
                             </div>
                             <div style="flex:1">
                                 <label>إلى:</label>
-                                <input type="time" class="editable-input" value="${entry.to}" onchange="updateLiveLink('${escapeForJs(sub)}', 'to', this.value)">
+                                <input type="time" class="editable-input" value="${esc(entry.to)}" onchange="updateLiveLink('${escapeForJs(sub)}', 'to', this.value)">
                             </div>
                         </div>
                         <div style="margin-top:8px; display:flex; gap:8px;">
@@ -1599,7 +1743,7 @@
                 };
                 const preview = document.getElementById('news-attachment-image-preview');
                 if(preview) {
-                    preview.innerHTML = `<img src="${event.target.result}" style="max-width:100%; border-radius:8px;">`;
+                    preview.innerHTML = `<img src="${safeImgSrc(event.target.result)}" style="max-width:100%; border-radius:8px;">`;
                 }
                 console.log('News image attachment set');
             };
@@ -1628,7 +1772,7 @@
                 };
                 const preview = document.getElementById('news-attachment-file-preview');
                 if(preview) {
-                    preview.innerHTML = `<strong>✓ تم اختيار الملف:</strong> ${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
+                    preview.innerHTML = `<strong>✓ تم اختيار الملف:</strong> ${esc(file.name)} (${(file.size / 1024).toFixed(2)} KB)`;
                 }
                 console.log('News file attachment set');
             };
@@ -1651,12 +1795,30 @@
             console.log('News attachment cleared');
         }
 
-        // Unified downloader for attachments: type = 'assignment' | 'news' | 'important'
+        // قائمة العناصر حسب النوع (مستخدمة للتحميل وعرض الصور بدون وضع base64 داخل onclick)
+        function attachmentOwnerList(type){
+            if(type === 'assignment') return appData.assignments[selectedSection];
+            if(type === 'exam')       return appData.exams[selectedSection];
+            if(type === 'news')       return appData.news;
+            if(type === 'important')  return appData.importantLinks;
+            return null;
+        }
+        // عرض صورة مرفقة بالاعتماد على الفهرس بدل تمرير الـ data URL كاملاً داخل السمة
+        function viewAttachmentImage(type, itemIndex, attIndex){
+            const list = attachmentOwnerList(type);
+            if(!list) return;
+            const item = list[itemIndex];
+            if(!item || !Array.isArray(item.attachments)) return;
+            const att = item.attachments[attIndex];
+            if(!att || att.type !== 'image') return;
+            viewImage(att.data);
+        }
+        window.viewAttachmentImage = viewAttachmentImage;
+        window.attachmentOwnerList = attachmentOwnerList;
+
+        // Unified downloader for attachments: type = 'assignment' | 'exam' | 'news' | 'important'
         function downloadAttachment(type, itemIndex, attIndex) {
-            let list = null;
-            if(type === 'assignment') list = appData.assignments[selectedSection];
-            else if(type === 'news') list = appData.news;
-            else if(type === 'important') list = appData.importantLinks;
+            const list = attachmentOwnerList(type);
             if(!list) return;
             const item = list[itemIndex];
             if(!item || !Array.isArray(item.attachments)) return;
@@ -1697,22 +1859,22 @@
                             attachmentsHtml += `
                                 <div style="margin-top:8px; padding:8px; background:#f5f5f5; border-radius:6px;">
                                     <strong style="color:#666; font-size:0.9rem;">📷 صورة:</strong>
-                                    <img src="${att.data}" style="max-width:100%; max-height:200px; border-radius:6px; margin-top:6px; cursor:pointer;" onclick="viewImage('${att.data.replace(/'/g, "\\'")}')" >
+                                    <img src="${safeImgSrc(att.data)}" style="max-width:100%; max-height:200px; border-radius:6px; margin-top:6px; cursor:pointer;" onclick="viewAttachmentImage('news', ${Number(index)}, ${Number(ai)})" >
                                 </div>
                             `;
                         } else if(att.type === 'link') {
                             attachmentsHtml += `
                                 <div style="margin-top:8px; padding:8px; background:#f5f5f5; border-radius:6px;">
                                     <strong style="color:#666; font-size:0.9rem;">🔗 رابط:</strong>
-                                    <a href="${att.url}" target="_blank" style="display:inline-block; margin-right:8px; color:#0066cc; text-decoration:none;">فتح الرابط</a>
+                                    <a href="${safeUrlAttr(att.url)}" target="_blank" rel="noopener noreferrer nofollow" style="display:inline-block; margin-right:8px; color:#0066cc; text-decoration:none;">فتح الرابط</a>
                                 </div>
                             `;
                         } else if(att.type === 'file') {
                             attachmentsHtml += `
                                 <div style="margin-top:8px; padding:8px; background:#f5f5f5; border-radius:6px;">
                                     <strong style="color:#666; font-size:0.9rem;">📎 ملف:</strong>
-                                    <button class="btn-sm" style="background:#FF6B6B; color:white; margin-right:8px;" onclick="downloadAttachment('news', ${index}, ${ai})">⬇️ تحميل</button>
-                                    <span style="color:#999; font-size:0.85rem;">${att.name || 'ملف'}</span>
+                                    <button class="btn-sm" style="background:#FF6B6B; color:white; margin-right:8px;" onclick="downloadAttachment('news', ${Number(index)}, ${Number(ai)})">⬇️ تحميل</button>
+                                    <span style="color:#999; font-size:0.85rem;">${esc(att.name || 'ملف')}</span>
                                 </div>
                             `;
                         }
@@ -1721,16 +1883,16 @@
                 
                 div.innerHTML = `
                     <div class="data-header">
-                        <h3 class="editable-value">${item.title}</h3>
-                        <button class="btn-sm btn-delete" onclick="deleteNews(${index})">حذف</button>
+                        <h3 class="editable-value">${esc(item.title)}</h3>
+                        <button class="btn-sm btn-delete" onclick="deleteNews(${Number(index)})">حذف</button>
                     </div>
-                    <p class="editable-value" style="color:var(--text-light); margin-bottom:10px;">${item.content}</p>
+                    <div class="editable-value post-body rich-text">${esc(item.content)}</div>
                     ${attachmentsHtml}
                     <div class="editable-field">
                         <label>العنوان:</label>
-                        <input class="editable-input" value="${item.title}" onchange="updateNews(${index}, 'title', this.value)" style="margin-bottom: 10px;">
+                        <input class="editable-input" value="${esc(item.title)}" onchange="updateNews(${Number(index)}, 'title', this.value)" style="margin-bottom: 10px;">
                         <label>المحتوى:</label>
-                        <textarea class="editable-textarea" onchange="updateNews(${index}, 'content', this.value)" style="min-height: 80px;">${item.content}</textarea>
+                        <textarea class="editable-textarea" onchange="updateNews(${Number(index)}, 'content', this.value)" style="min-height: 160px;">${esc(item.content)}</textarea>
                     </div>
                 `;
                 container.appendChild(div);
@@ -1788,22 +1950,22 @@
                             attachmentsHtml += `
                                 <div style="margin-top:8px; padding:8px; background:#f5f5f5; border-radius:6px;">
                                     <strong style="color:#666; font-size:0.9rem;">📷 صورة:</strong>
-                                    <img src="${att.data}" style="max-width:100%; max-height:200px; border-radius:6px; margin-top:6px; cursor:pointer;" onclick="viewImage('${att.data.replace(/'/g, "\\'")}')" >
+                                    <img src="${safeImgSrc(att.data)}" style="max-width:100%; max-height:200px; border-radius:6px; margin-top:6px; cursor:pointer;" onclick="viewAttachmentImage('important', ${Number(index)}, ${Number(ai)})" >
                                 </div>
                             `;
                         } else if(att.type === 'link') {
                             attachmentsHtml += `
                                 <div style="margin-top:8px; padding:8px; background:#f5f5f5; border-radius:6px;">
                                     <strong style="color:#666; font-size:0.9rem;">🔗 رابط:</strong>
-                                    <a href="${att.url}" target="_blank" style="display:inline-block; margin-right:8px; color:#0066cc; text-decoration:none;">فتح الرابط</a>
+                                    <a href="${safeUrlAttr(att.url)}" target="_blank" rel="noopener noreferrer nofollow" style="display:inline-block; margin-right:8px; color:#0066cc; text-decoration:none;">فتح الرابط</a>
                                 </div>
                             `;
                         } else if(att.type === 'file') {
                             attachmentsHtml += `
                                 <div style="margin-top:8px; padding:8px; background:#f5f5f5; border-radius:6px;">
                                     <strong style="color:#666; font-size:0.9rem;">📎 ملف:</strong>
-                                    <button class="btn-sm" style="background:#FF6B6B; color:white; margin-right:8px;" onclick="downloadAttachment('important', ${index}, ${ai})">⬇️ تحميل</button>
-                                    <span style="color:#999; font-size:0.85rem;">${att.name || 'ملف'}</span>
+                                    <button class="btn-sm" style="background:#FF6B6B; color:white; margin-right:8px;" onclick="downloadAttachment('important', ${Number(index)}, ${Number(ai)})">⬇️ تحميل</button>
+                                    <span style="color:#999; font-size:0.85rem;">${esc(att.name || 'ملف')}</span>
                                 </div>
                             `;
                         }
@@ -1813,13 +1975,13 @@
                 div.innerHTML = `
                     <div class="data-header">
                         <div>
-                            <h3 class="editable-value">${item.title}</h3>
-                            <input class="editable-field editable-input" value="${item.title}" onchange="updateImportantLink(${index}, 'title', this.value)">
+                            <h3 class="editable-value rich-text">${esc(item.title)}</h3>
+                            <input class="editable-field editable-input" value="${esc(item.title)}" onchange="updateImportantLink(${Number(index)}, 'title', this.value)">
                         </div>
-                        ${item.url ? `<a href="${item.url}" target="_blank" class="btn-link editable-value">فتح الرابط ↗️</a>` : ``}
+                        ${safeUrl(item.url) ? `<a href="${safeUrlAttr(item.url)}" target="_blank" rel="noopener noreferrer nofollow" class="btn-link editable-value">فتح الرابط ↗️</a>` : ``}
                     </div>
                     <div class="editable-field">
-                        <input class="editable-input" value="${item.url}" placeholder="الرابط" onchange="updateImportantLink(${index}, 'url', this.value)">
+                        <input class="editable-input" value="${esc(item.url)}" placeholder="الرابط" onchange="updateImportantLink(${Number(index)}, 'url', this.value)">
                     </div>
                     ${attachmentsHtml}
                     <button class="btn-sm btn-delete" onclick="deleteImportantLink(${index})">حذف</button>
@@ -1864,15 +2026,15 @@
                 div.innerHTML = `
                     <div class="data-header">
                         <div>
-                            <h3 class="editable-value">${t.name}</h3>
-                            <input class="editable-field editable-input" value="${t.name}" onchange="updateTeacher(${index}, 'name', this.value)">
-                            <p class="editable-value" style="color:gray; font-size:0.9rem">${t.role || ''}</p>
-                            <input class="editable-field editable-input" value="${t.role || ''}" onchange="updateTeacher(${index}, 'role', this.value)">
-                            <p class="editable-value" style="color:gray; font-size:0.85rem; margin-top:5px;">${t.phone || ''}</p>
-                            <input class="editable-field editable-input" value="${t.phone || ''}" onchange="updateTeacher(${index}, 'phone', this.value)">
+                            <h3 class="editable-value">${esc(t.name)}</h3>
+                            <input class="editable-field editable-input" value="${esc(t.name)}" onchange="updateTeacher(${Number(index)}, 'name', this.value)">
+                            <p class="editable-value rich-text" style="color:gray; font-size:0.9rem">${esc(t.role || '')}</p>
+                            <input class="editable-field editable-input" value="${esc(t.role || '')}" onchange="updateTeacher(${Number(index)}, 'role', this.value)">
+                            <p class="editable-value" style="color:gray; font-size:0.85rem; margin-top:5px;">${esc(t.phone || '')}</p>
+                            <input class="editable-field editable-input" value="${esc(t.phone || '')}" onchange="updateTeacher(${Number(index)}, 'phone', this.value)">
                         </div>
                         <div style="text-align:left;">
-                            ${t.phone ? `<a href="tel:${t.phone}" class="btn-link editable-value">اتصال</a>` : ''}
+                            ${safePhone(t.phone) ? `<a href="tel:${esc(safePhone(t.phone))}" class="btn-link editable-value">اتصال</a>` : ''}
                         </div>
                     </div>
                     <button class="btn-sm btn-delete" onclick="deleteTeacher(${index})">حذف</button>
@@ -1913,13 +2075,13 @@
                 div.innerHTML = `
                     <div class="data-header">
                         <div>
-                            <h3 class="editable-value">${item.title}</h3>
-                            <input class="editable-field editable-input" value="${item.title}" onchange="updateGroupLink(${index}, 'title', this.value)">
+                            <h3 class="editable-value rich-text">${esc(item.title)}</h3>
+                            <input class="editable-field editable-input" value="${esc(item.title)}" onchange="updateGroupLink(${Number(index)}, 'title', this.value)">
                         </div>
-                        ${item.url ? `<a href="${item.url}" target="_blank" class="btn-link editable-value">فتح الرابط ↗️</a>` : ``}
+                        ${safeUrl(item.url) ? `<a href="${safeUrlAttr(item.url)}" target="_blank" rel="noopener noreferrer nofollow" class="btn-link editable-value">فتح الرابط ↗️</a>` : ``}
                     </div>
                     <div class="editable-field">
-                        <input class="editable-input" value="${item.url}" placeholder="الرابط" onchange="updateGroupLink(${index}, 'url', this.value)">
+                        <input class="editable-input" value="${esc(item.url)}" placeholder="الرابط" onchange="updateGroupLink(${Number(index)}, 'url', this.value)">
                     </div>
                     <button class="btn-sm btn-delete" onclick="deleteGroupLink(${index})">حذف</button>
                 `;
@@ -1964,16 +2126,16 @@
                 div.innerHTML = `
                     <div class="data-header">
                         <div>
-                            <h3 class="editable-value">${member.name}</h3>
-                            <input class="editable-field editable-input" value="${member.name}" onchange="updateTeam(${index}, 'name', this.value)">
-                            <p class="editable-value" style="color:gray; font-size:0.9rem">${member.role}</p>
-                            <input class="editable-field editable-input" value="${member.role}" onchange="updateTeam(${index}, 'role', this.value)">
-                            <p class="editable-value" style="color:gray; font-size:0.85rem; margin-top:5px;">${member.bio || 'لا توجد معلومات'}</p>
-                            <textarea class="editable-field editable-textarea" onchange="updateTeam(${index}, 'bio', this.value)" style="min-height: 50px; margin-top: 5px;">${member.bio || ''}</textarea>
+                            <h3 class="editable-value">${esc(member.name)}</h3>
+                            <input class="editable-field editable-input" value="${esc(member.name)}" onchange="updateTeam(${Number(index)}, 'name', this.value)">
+                            <p class="editable-value rich-text" style="color:gray; font-size:0.9rem">${esc(member.role)}</p>
+                            <input class="editable-field editable-input" value="${esc(member.role)}" onchange="updateTeam(${Number(index)}, 'role', this.value)">
+                            <p class="editable-value rich-text" style="color:gray; font-size:0.85rem; margin-top:5px;">${esc(member.bio || 'لا توجد معلومات')}</p>
+                            <textarea class="editable-field editable-textarea" onchange="updateTeam(${Number(index)}, 'bio', this.value)" style="min-height: 90px; margin-top: 5px;">${esc(member.bio || '')}</textarea>
                         </div>
                         <div style="text-align:left;">
-                            ${member.whatsapp ? `<a href="https://wa.me/${member.whatsapp}" target="_blank" class="btn-link editable-value">واتس</a>` : ``}
-                            <input class="editable-field editable-input" value="${member.whatsapp}" placeholder="رقم الواتس" onchange="updateTeam(${index}, 'whatsapp', this.value)">
+                            ${safePhone(member.whatsapp) ? `<a href="https://wa.me/${esc(safePhone(member.whatsapp).replace(/^\+/,''))}" target="_blank" rel="noopener noreferrer" class="btn-link editable-value">واتس</a>` : ``}
+                            <input class="editable-field editable-input" value="${esc(member.whatsapp)}" placeholder="رقم الواتس" onchange="updateTeam(${Number(index)}, 'whatsapp', this.value)">
                         </div>
                     </div>
                     <button class="btn-sm btn-delete" onclick="deleteTeamMember(${index})">حذف</button>
@@ -2047,7 +2209,7 @@
                 const div = document.createElement('div');
                 div.style.cssText = 'padding:8px; background:#e8f4f8; border-radius:6px; margin-top:6px; display:flex; justify-content:space-between; align-items:center;';
                 const typeLabel = att.type === 'image' ? '📷 صورة' : att.type === 'link' ? '🔗 رابط' : '📎 ملف';
-                div.innerHTML = `<span>${typeLabel}</span><button type="button" class="btn-sm" style="background:#EF4444; color:white;" onclick="removeExamAttachment(${idx})">إزالة</button>`;
+                div.innerHTML = `<span>${esc(typeLabel)}</span><button type="button" class="btn-sm" style="background:#EF4444; color:white;" onclick="removeExamAttachment(${Number(idx)})">إزالة</button>`;
                 container.appendChild(div);
             });
         }
@@ -2067,7 +2229,7 @@
             const newSubEl = document.getElementById('new-exam-subject');
             if(newSubEl) {
                 let opts = '<option value="">--- اختر مادة ---</option>';
-                getSubjectsList().forEach(s => { opts += `<option value="${s}">${s}</option>`; });
+                getSubjectsList().forEach(s => { opts += `<option value="${esc(s)}">${esc(s)}</option>`; });
                 newSubEl.innerHTML = opts;
             }
 
@@ -2080,7 +2242,7 @@
                 const div = document.createElement('div');
                 div.className = 'task-item';
                 const dateLabel = exam.date ? new Date(exam.date).toLocaleDateString('ar-EG') : '';
-                const subjectHtml = exam.subject ? `<div class="task-subject">${exam.subject}</div>` : '';
+                const subjectHtml = exam.subject ? `<div class="task-subject">${esc(exam.subject)}</div>` : '';
                 
                 // Attachments HTML (support multiple)
                 let attachmentHtml = '';
@@ -2090,22 +2252,22 @@
                             attachmentHtml += `
                                 <div style="margin-top:8px; padding:8px; background:#f5f5f5; border-radius:6px;">
                                     <strong style="color:#666; font-size:0.9rem;">📷 صورة:</strong>
-                                    <img src="${att.data}" style="max-width:100%; max-height:200px; border-radius:6px; margin-top:6px; cursor:pointer;" onclick="viewImage('${att.data}')">
+                                    <img src="${safeImgSrc(att.data)}" style="max-width:100%; max-height:200px; border-radius:6px; margin-top:6px; cursor:pointer;" onclick="viewAttachmentImage('exam', ${Number(index)}, ${Number(ai)})">
                                 </div>
                             `;
                         } else if(att.type === 'link') {
                             attachmentHtml += `
                                 <div style="margin-top:8px; padding:8px; background:#f5f5f5; border-radius:6px;">
                                     <strong style="color:#666; font-size:0.9rem;">🔗 رابط:</strong>
-                                    <a href="${att.url}" target="_blank" style="display:inline-block; margin-right:8px; color:#0066cc; text-decoration:none;">فتح الرابط</a>
+                                    <a href="${safeUrlAttr(att.url)}" target="_blank" rel="noopener noreferrer nofollow" style="display:inline-block; margin-right:8px; color:#0066cc; text-decoration:none;">فتح الرابط</a>
                                 </div>
                             `;
                         } else if(att.type === 'file') {
                             attachmentHtml += `
                                 <div style="margin-top:8px; padding:8px; background:#f5f5f5; border-radius:6px;">
                                     <strong style="color:#666; font-size:0.9rem;">📎 ملف:</strong>
-                                    <button class="btn-sm" style="background:#FF6B6B; color:white; margin-right:8px;" onclick="downloadAttachment('exam', ${index}, ${ai})">⬇️ تحميل</button>
-                                    <span style="color:#999; font-size:0.85rem;">${att.name || att.url || 'ملف'}</span>
+                                    <button class="btn-sm" style="background:#FF6B6B; color:white; margin-right:8px;" onclick="downloadAttachment('exam', ${Number(index)}, ${Number(ai)})">⬇️ تحميل</button>
+                                    <span style="color:#999; font-size:0.85rem;">${esc(att.name || att.url || 'ملف')}</span>
                                 </div>
                             `;
                         }
@@ -2115,10 +2277,10 @@
                 div.innerHTML = `
                     <div style="flex:1">
                         ${subjectHtml}
-                        <div class="task-desc"><span class="editable-value">${exam.title}</span></div>
+                        <div class="task-desc"><span class="editable-value rich-text">${esc(exam.title)}</span></div>
                         ${attachmentHtml}
-                        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:6px;"><small style="color:var(--text-light);">${dateLabel}</small></div>
-                        <input type="text" class="editable-field editable-input" value="${exam.title}" onchange="updateExamTitle(${index}, this.value)">
+                        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:6px;"><small style="color:var(--text-light);">${esc(dateLabel)}</small></div>
+                        <textarea class="editable-field editable-input" rows="3" onchange="updateExamTitle(${Number(index)}, this.value)">${esc(exam.title)}</textarea>
                     </div>
                     <button class="btn-sm btn-delete" onclick="deleteExam(${index})">حذف</button>
                 `;
@@ -2219,13 +2381,13 @@
                 div.className = 'data-card';
                 div.innerHTML = `
                     <div class="data-header">
-                        <h3 class="editable-value">${item.title}</h3>
-                        ${item.link ? `<a href="${item.link}" target="_blank" class="btn-link editable-value">تحميل ⬇️</a>` : ``}
-                        <button class="btn-sm btn-delete" onclick="deleteBooksPackage(${index})">حذف</button>
+                        <h3 class="editable-value rich-text">${esc(item.title)}</h3>
+                        ${safeUrl(item.link) ? `<a href="${safeUrlAttr(item.link)}" target="_blank" rel="noopener noreferrer" class="btn-link editable-value">تحميل ⬇️</a>` : ``}
+                        <button class="btn-sm btn-delete" onclick="deleteBooksPackage(${Number(index)})">حذف</button>
                     </div>
                     <div class="editable-field">
-                        <input class="editable-input" value="${item.title}" placeholder="الاسم" onchange="updateBooksPackage(${index}, 'title', this.value)">
-                        <input class="editable-input" value="${item.link}" placeholder="رابط التحميل" onchange="updateBooksPackage(${index}, 'link', this.value)">
+                        <input class="editable-input" value="${esc(item.title)}" placeholder="الاسم" onchange="updateBooksPackage(${Number(index)}, 'title', this.value)">
+                        <input class="editable-input" value="${esc(item.link)}" placeholder="رابط التحميل" onchange="updateBooksPackage(${Number(index)}, 'link', this.value)">
                     </div>
                 `;
                 container.appendChild(div);
@@ -2272,10 +2434,11 @@
 
         // عند تحميل الصفحة، إذا دخلت قسم الكتب والرزم، فعّل تبويب الكتب افتراضياً
         document.addEventListener('DOMContentLoaded', function() {
-            switchBooksPackagesType('books');
-            render();
-            // Start splash animation sequence
+            // Start splash animation sequence (تعمل دائماً، حتى قبل تسجيل الدخول)
             startSplashSequence();
+            if(window.APP_ROLE === 'admin' && window.ADMIN_VERIFIED !== true) return;
+            try { switchBooksPackagesType('books'); } catch(e){}
+            try { render(); } catch(e){ console.warn('render', e); }
         });
 
         // Splash animation sequence
@@ -2426,7 +2589,9 @@
 
         
 
-        render();
+        if(!(window.APP_ROLE === 'admin' && window.ADMIN_VERIFIED !== true)){
+            try { render(); } catch(e){ console.warn('initial render', e); }
+        }
     
 
 
@@ -2460,6 +2625,8 @@
                 // Show the prompt immediately (every visit, unless app installed)
                 showPrompt();
             });
+
+            if(!promptEl || !installBtn || !hideBtn) return;
 
             // Install button: trigger browser install dialog
             installBtn.addEventListener('click', async ()=>{
