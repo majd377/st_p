@@ -50,7 +50,7 @@
             // Don't attempt registration when page is opened via file:// (origin 'null').
             if (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
                 window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('sw.js?v=20260918-5').catch(e => console.warn('SW register failed', e));
+                    navigator.serviceWorker.register('sw.js?v=20261007-6').catch(e => console.warn('SW register failed', e));
                 });
             } else {
                 console.info('ServiceWorker registration skipped: insecure origin', location.protocol, location.hostname);
@@ -142,8 +142,17 @@
         }
 
         // Normalize appData to ensure required structures exist
+        // Firebase يعيد المصفوفات أحياناً ككائنات (إذا كانت الفهارس غير متتالية) — نحوّلها لمصفوفة
+        function asArray(v){
+            if(Array.isArray(v)) return v.filter(x => x !== null && x !== undefined);
+            if(v && typeof v === 'object') return Object.keys(v).sort((a,b)=>Number(a)-Number(b)).map(k=>v[k]).filter(x => x !== null && x !== undefined);
+            return [];
+        }
+        window.asArray = asArray;
+
         function normalizeAppData(data) {
             if(!data) return defaultData;
+            ['books','packages','support','summaries','news','importantLinks','team'].forEach(k => { if(data[k] !== undefined) data[k] = asArray(data[k]); });
             // basic fallbacks
             if(!data.sections) data.sections = defaultData.sections;
             if(!Array.isArray(data.subjects)) data.subjects = Array.isArray(defaultData.subjects) ? defaultData.subjects.slice() : [];
@@ -185,6 +194,7 @@
                 if(!data.recordingsLinks[i]) data.recordingsLinks[i] = {};
                 if(!data.teachers[i]) data.teachers[i] = [];
                 if(!data.groupLinks[i]) data.groupLinks[i] = [];
+                ['assignments','exams','recordings','teachers','groupLinks'].forEach(k => { data[k][i] = asArray(data[k][i]); });
                 if(!Array.isArray(data.subjects)) data.subjects = [];
                 // do NOT auto-create per-subject progress entries here; leave section progress empty until admin adds subjects
                 // ensure recordingsLinks is an object but do not populate per-subject keys
@@ -233,6 +243,10 @@
         let appData = normalizeAppData(JSON.parse(localStorage.getItem('collegeAppData')) || defaultData);
 
         let firebaseLoadStarted = false;
+        let dataEpoch = 0;          // يزيد مع كل حفظ محلي حتى لا نكتب فوق تعديل لم يصل بعد
+        let lastFetchAt = 0;
+        let fetchInFlight = null;
+        let fbConnected = true;
         // الكتابة مسموحة فقط من لوحة الإدارة وبعد التحقق الكامل من الصلاحية.
         // صفحة الزائر لا تكتب إطلاقاً (وقواعد Firebase ترفضها أيضاً كطبقة ثانية).
         function canWriteData(){
@@ -243,6 +257,7 @@
         }
         window.canWriteData = canWriteData;
         function saveData(){
+            dataEpoch++;
             try {
                 const serialized = JSON.stringify(appData);
                 // حد أقصى تقريبي لحجم البيانات لمنع إغراق قاعدة البيانات
@@ -311,23 +326,116 @@
         }
         window.getSubjectsList = getSubjectsList;
 
+        // جلب البيانات من الخادم (مع مهلة حتى لا يبقى التحميل معلقاً)
+        function fetchRemoteData(){
+            if(!db) return Promise.resolve('offline');
+            if(fetchInFlight) return fetchInFlight;
+            const epoch = dataEpoch;
+            const job = new Promise(resolve => {
+                let done = false;
+                const timer = setTimeout(() => { if(!done){ done = true; resolve('timeout'); } }, 12000);
+                db.ref('appData').once('value').then(snap => {
+                    if(done) return;
+                    done = true; clearTimeout(timer);
+                    if(!snap.exists()){ resolve('empty'); return; }
+                    if(epoch !== dataEpoch){ resolve('skipped'); return; }
+                    appData = normalizeAppData(snap.val());
+                    if(selectedSection > appData.sections) selectedSection = 1;
+                    try { localStorage.setItem('collegeAppData', JSON.stringify(appData)); } catch(e) {}
+                    lastFetchAt = Date.now();
+                    resolve('ok');
+                }).catch(err => {
+                    console.warn('Firebase appData load failed:', err);
+                    if(done) return;
+                    done = true; clearTimeout(timer);
+                    resolve('error');
+                });
+            }).then(r => { fetchInFlight = null; return r; });
+            fetchInFlight = job;
+            return job;
+        }
+
         function loadDataFromFirebase(){
             if(firebaseLoadStarted || !db) return;
             firebaseLoadStarted = true;
-            db.ref('appData').once('value').then(snap => {
-                if(!snap.exists()) return;
-                appData = normalizeAppData(snap.val());
-                try { localStorage.setItem('collegeAppData', JSON.stringify(appData)); } catch(e) {}
-                try { render(); } catch(e) { console.warn('render after Firebase load failed', e); }
-            }).catch(err => console.warn('Firebase appData load failed:', err));
+            try {
+                db.ref('.info/connected').on('value', s => { fbConnected = !!s.val(); });
+            } catch(e) {}
+            fetchRemoteData().then(r => {
+                if(r === 'ok'){ try { render(); } catch(e) { console.warn('render after Firebase load failed', e); } }
+            });
         }
         loadDataFromFirebase();
+
+        // تحديث تلقائي هادئ عند التنقل بين الأقسام أو العودة للتبويب (بحد أدنى 40 ثانية بين كل مرة)
+        function typingNow(){
+            const a = document.activeElement;
+            return !!(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName));
+        }
+        function softRefresh(){
+            if(!db || Date.now() - lastFetchAt < 40000 || typingNow()) return;
+            fetchRemoteData().then(r => { if(r === 'ok' && !typingNow()){ try { render(); } catch(e) {} } });
+        }
+        document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible' && window.APP_ROLE !== 'admin') softRefresh(); });
+        window.addEventListener('online', () => { if(window.APP_ROLE !== 'admin') softRefresh(); });
+
+        function showToast(msg, kind){
+            let t = document.getElementById('app-toast');
+            if(!t){ t = document.createElement('div'); t.id = 'app-toast'; t.className = 'app-toast'; t.setAttribute('role','status'); document.body.appendChild(t); }
+            t.textContent = msg;
+            t.dataset.kind = kind || 'ok';
+            t.classList.add('show');
+            clearTimeout(showToast._t);
+            showToast._t = setTimeout(() => t.classList.remove('show'), 2600);
+        }
+
+        // زر التحديث: يعيد الاتصال بقاعدة البيانات إن كان معلقاً ثم يعيد رسم القسم الحالي
+        let refreshing = false;
+        async function refreshCurrentSection(){
+            if(refreshing) return;
+            refreshing = true;
+            const btn = document.getElementById('refresh-btn');
+            if(btn){ btn.classList.add('spinning'); btn.disabled = true; }
+            let result = 'offline';
+            try {
+                const reconnect = () => { try { db.goOffline(); db.goOnline(); } catch(e) {} };
+                if(db){
+                    if(!fbConnected) reconnect();
+                    result = await fetchRemoteData();
+                    if(result === 'timeout' || result === 'error'){
+                        reconnect();
+                        result = await fetchRemoteData();
+                    }
+                }
+                try { render(); } catch(e) { console.warn('render', e); }
+            } finally {
+                refreshing = false;
+                if(btn){ btn.classList.remove('spinning'); btn.disabled = false; }
+            }
+            if(result === 'ok' || result === 'empty' || result === 'skipped') showToast('تم تحديث البيانات');
+            else showToast('تعذر الاتصال، تحقق من الإنترنت وجرّب مرة أخرى', 'err');
+        }
+        window.refreshCurrentSection = refreshCurrentSection;
+
+        const REFRESH_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>';
+        function ensureRefreshButton(){
+            const inner = document.querySelector('.main-content .header');
+            if(!inner || document.getElementById('refresh-btn')) return;
+            const b = document.createElement('button');
+            b.id = 'refresh-btn'; b.type = 'button'; b.className = 'refresh-btn';
+            b.title = 'تحديث البيانات'; b.setAttribute('aria-label','تحديث البيانات');
+            b.innerHTML = REFRESH_ICON + '<span>تحديث</span>';
+            b.onclick = refreshCurrentSection;
+            inner.appendChild(b);
+        }
+        window.ensureRefreshButton = ensureRefreshButton;
 
         // --- إعدادات المظهر (Font & Color Scheme) ---
         // تخزين الإعدادات محليًا فقط (localStorage)
         const DEFAULT_SETTINGS = {
             font: 'default',
-            colorScheme: 'dark',
+            colorScheme: 'light',
+            themeVersion: 6,
             fontScale: 80,
             lineHeight: 17,
             highContrast: false,
@@ -349,7 +457,10 @@
 
         // الحصول على الإعدادات الحالية (قبل استدعاء applyStoredSettings)
         let userSettings = loadUserSettings();
-    if(userSettings && ['ocean','sage','sand','rose','luxury'].includes(userSettings.colorScheme)) userSettings.colorScheme='dark';
+    if(!userSettings || typeof userSettings !== 'object') userSettings = {...DEFAULT_SETTINGS};
+        // الوضع الفاتح هو الافتراضي: الإعدادات القديمة كانت تحفظ الداكن تلقائياً، فنرجعها مرة واحدة فقط
+        if(userSettings.themeVersion !== 6){ userSettings.colorScheme = 'light'; userSettings.themeVersion = 6; saveUserSettings(userSettings); }
+        if(!['light','dark'].includes(userSettings.colorScheme)) userSettings.colorScheme = 'light';
 
 
         // تطبيق الخط
@@ -360,22 +471,23 @@
             userSettings.font=fontName; saveUserSettings(userSettings); updateFontButtons();
         }
         function setColorScheme(schemeName){
-            const normalized=schemeName==='light'?'light':'dark';
+            const normalized=schemeName==='dark'?'dark':'light';
             document.documentElement.dataset.theme=normalized;
+            try{const m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',normalized==='dark'?'#141210':'#f6f1e8');}catch(e){}
             userSettings.colorScheme=normalized; saveUserSettings(userSettings); updateColorSchemeButtons();
         }
         function updateFontButtons(){const cur=userSettings.font||'default';document.querySelectorAll('.font-choice-btn').forEach(b=>b.classList.toggle('selected',b.id===`font-${cur}-btn`));}
-        function updateColorSchemeButtons(){const cur=userSettings.colorScheme||'ocean';document.querySelectorAll('.theme-option').forEach(b=>b.classList.toggle('selected',b.id===`scheme-${cur}-btn`));}
+        function updateColorSchemeButtons(){const cur=userSettings.colorScheme||'light';document.querySelectorAll('.theme-option').forEach(b=>b.classList.toggle('selected',b.id===`scheme-${cur}-btn`));}
         function setFontScale(v){const n=Math.max(60,Math.min(120,Number(v)||80));document.documentElement.style.setProperty('--font-scale',n/100);document.documentElement.style.setProperty('--base-font-size', (16*n/100)+'px');userSettings.fontScale=n;saveUserSettings(userSettings);const e=document.getElementById('font-size-value');if(e)e.textContent=n+'%';const input=document.getElementById('font-size-range');if(input)input.value=n;}
         function setLineHeight(v){const n=Math.max(15,Math.min(22,Number(v)||17));document.documentElement.style.setProperty('--line-height-scale',n/10);userSettings.lineHeight=n;saveUserSettings(userSettings);const e=document.getElementById('line-height-value');if(e)e.textContent=(n/10).toFixed(1)+'×';const input=document.getElementById('line-height-range');if(input)input.value=n;}
         function toggleHighContrast(){userSettings.highContrast=!userSettings.highContrast;document.body.classList.toggle('high-contrast',userSettings.highContrast);saveUserSettings(userSettings);updateAppearanceStates();}
         function toggleReducedMotion(){userSettings.reducedMotion=!userSettings.reducedMotion;document.body.classList.toggle('reduced-motion',userSettings.reducedMotion);saveUserSettings(userSettings);updateAppearanceStates();}
         function toggleCompactMode(){userSettings.compactMode=!userSettings.compactMode;document.body.classList.toggle('compact-mode',userSettings.compactMode);saveUserSettings(userSettings);updateAppearanceStates();}
         function updateAppearanceStates(){[['contrast-state',userSettings.highContrast],['motion-state',userSettings.reducedMotion],['compact-state',userSettings.compactMode]].forEach(x=>{const e=document.getElementById(x[0]);if(e)e.textContent=x[1]?'●':'○';});}
-        function resetAppearanceSettings(){userSettings={...DEFAULT_SETTINGS};saveUserSettings(userSettings);setFont('default');setColorScheme('dark');setFontScale(80);setLineHeight(17);document.body.classList.remove('high-contrast','reduced-motion','compact-mode');updateAppearanceStates();render();}
+        function resetAppearanceSettings(){userSettings={...DEFAULT_SETTINGS};saveUserSettings(userSettings);setFont('default');setColorScheme('light');setFontScale(80);setLineHeight(17);document.body.classList.remove('high-contrast','reduced-motion','compact-mode');updateAppearanceStates();render();}
         function applyStoredSettings(){
             const fm={default:'"Segoe UI", Tahoma, Arial, sans-serif',aldhabi:"'ALDHABI', sans-serif",alatypoo:"'AlaTypoo', sans-serif",dwnoutsh:"'DWNOUTSH', sans-serif",kfxftout:"'KFXFTOUT', sans-serif",ptbldbrk:"'PTBLDBRK', sans-serif"};
-            document.documentElement.style.setProperty('--font-family',fm[userSettings.font]||fm.default);setColorScheme(userSettings.colorScheme||'dark');setFontScale(userSettings.fontScale||80);setLineHeight(userSettings.lineHeight||17);document.body.classList.toggle('high-contrast',!!userSettings.highContrast);document.body.classList.toggle('reduced-motion',!!userSettings.reducedMotion);document.body.classList.toggle('compact-mode',!!userSettings.compactMode);updateAppearanceStates();
+            document.documentElement.style.setProperty('--font-family',fm[userSettings.font]||fm.default);setColorScheme(userSettings.colorScheme||'light');setFontScale(userSettings.fontScale||80);setLineHeight(userSettings.lineHeight||17);document.body.classList.toggle('high-contrast',!!userSettings.highContrast);document.body.classList.toggle('reduced-motion',!!userSettings.reducedMotion);document.body.classList.toggle('compact-mode',!!userSettings.compactMode);updateAppearanceStates();
         }
         applyStoredSettings();
 
@@ -485,6 +597,7 @@
             const heading = document.getElementById('page-heading');
             if(heading) heading.innerText = titles[sectionId] || '';
             render();
+            softRefresh();
         }
 
         function goBack() {
@@ -513,6 +626,8 @@
         function render() {
             // لا تُصيّر شيئاً قبل أن تُحقن واجهة الإدارة بعد التحقق من الصلاحية
             if(window.APP_ROLE === 'admin' && window.ADMIN_VERIFIED !== true) return;
+            try { ensureRefreshButton(); } catch(e){ console.warn('refresh btn', e); }
+            try { initDhikr(); } catch(e){ console.warn('dhikr', e); }
             try { renderDate(); } catch(e){ console.warn('renderDate', e); }
             try { renderSectionSelectors(); } catch(e){ console.warn('renderSectionSelectors', e); }
             if(currentView === 'progress') renderProgress();
@@ -1230,20 +1345,154 @@
         function updateTaskText(index, val) { appData.assignments[selectedSection][index].text = val; saveData(); render(); }
         function deleteTask(index) { if(confirm('هل أنت متأكد من حذف هذا الواجب؟')) { appData.assignments[selectedSection].splice(index, 1); saveData(); render(); } }
 
+        // عارض الصور: تكبير/تصغير (أزرار، قرص بإصبعين، Ctrl+عجلة، نقر مزدوج) وتحريك داخل الصورة نفسها
+        function closeImageViewer(){
+            const v = document.getElementById('img-viewer');
+            if(v && v._cleanup) v._cleanup();
+            if(v) v.remove();
+            document.body.classList.remove('iv-open');
+        }
         function viewImage(imageSrc) {
-            const modal = document.createElement('div');
-            modal.style.cssText = 'position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center; z-index:9999;';
-            modal.innerHTML = `
-                <div style="position:relative; max-width:90vw; max-height:90vh;">
-                    <img src="${safeImgSrc(imageSrc)}" style="max-width:100%; max-height:100%; border-radius:8px;">
-                    <button onclick="this.parentElement.parentElement.remove()" style="position:absolute; top:10px; right:10px; background:#fff; border:none; width:40px; height:40px; border-radius:50%; cursor:pointer; font-size:20px;">✕</button>
-                </div>
-            `;
-            document.body.appendChild(modal);
-            modal.onclick = function(e) {
-                if(e.target === modal) modal.remove();
+            closeImageViewer();
+            const raw = safeUrl(imageSrc);
+            if(!raw || !/^(https?:|data:image\/|blob:)/i.test(raw)) return;
+
+            const ov = document.createElement('div');
+            ov.id = 'img-viewer'; ov.className = 'img-viewer'; ov.setAttribute('role','dialog'); ov.setAttribute('aria-modal','true');
+            ov.innerHTML =
+              '<div class="iv-bar" dir="ltr">' +
+                '<button type="button" class="iv-btn iv-close" data-a="close" aria-label="إغلاق">✕</button>' +
+                '<div class="iv-tools">' +
+                  '<button type="button" class="iv-btn" data-a="out" aria-label="تصغير">−</button>' +
+                  '<span class="iv-level" id="iv-level">100%</span>' +
+                  '<button type="button" class="iv-btn" data-a="in" aria-label="تكبير">+</button>' +
+                  '<button type="button" class="iv-btn iv-wide" data-a="fit">كامل الصورة</button>' +
+                  '<button type="button" class="iv-btn iv-wide" data-a="width">عرض الشاشة</button>' +
+                '</div>' +
+              '</div>' +
+              '<div class="iv-stage" dir="ltr"><div class="iv-canvas"><img class="iv-img" alt="" draggable="false"></div></div>';
+            document.body.appendChild(ov);
+            document.body.classList.add('iv-open');
+
+            const stage = ov.querySelector('.iv-stage');
+            const canvas = ov.querySelector('.iv-canvas');
+            const img = ov.querySelector('.iv-img');
+            const level = ov.querySelector('#iv-level');
+            let scale = 1, fitScale = 1, minScale = 1, maxScale = 4, ready = false;
+
+            function metrics(){
+                const sw = stage.clientWidth, sh = stage.clientHeight;
+                const nw = img.naturalWidth || 1, nh = img.naturalHeight || 1;
+                fitScale = Math.min(sw / nw, sh / nh, 1);
+                minScale = fitScale;
+                maxScale = Math.max(fitScale * 10, 4);
+            }
+            function apply(){
+                img.style.width = (img.naturalWidth * scale) + 'px';
+                level.textContent = Math.round((scale / fitScale) * 100) + '%';
+            }
+            function setScale(next, cx, cy){
+                next = Math.max(minScale, Math.min(maxScale, next));
+                if(cx === undefined){ cx = stage.clientWidth / 2; cy = stage.clientHeight / 2; }
+                const oldW = canvas.scrollWidth || 1, oldH = canvas.scrollHeight || 1;
+                const rx = (stage.scrollLeft + cx) / oldW, ry = (stage.scrollTop + cy) / oldH;
+                scale = next; apply();
+                stage.scrollLeft = rx * canvas.scrollWidth - cx;
+                stage.scrollTop = ry * canvas.scrollHeight - cy;
+            }
+            function fitAll(){ scale = fitScale; apply(); stage.scrollLeft = 0; stage.scrollTop = 0; }
+            function fitWidth(){ scale = Math.max(minScale, Math.min(maxScale, stage.clientWidth / (img.naturalWidth || 1))); apply(); stage.scrollLeft = 0; stage.scrollTop = 0; }
+            function init(){ metrics(); scale = fitScale; apply(); ready = true; }
+
+            img.onload = init;
+            img.onerror = () => { canvas.innerHTML = '<p class="iv-error">تعذر عرض الصورة</p>'; };
+            img.src = raw;
+            if(img.complete && img.naturalWidth) init();
+
+            // الأزرار
+            ov.querySelector('.iv-bar').addEventListener('click', e => {
+                const a = e.target.closest('[data-a]'); if(!a || !ready) { if(a && a.dataset.a === 'close') closeImageViewer(); return; }
+                const k = a.dataset.a;
+                if(k === 'close') closeImageViewer();
+                else if(k === 'in') setScale(scale * 1.35);
+                else if(k === 'out') setScale(scale / 1.35);
+                else if(k === 'fit') fitAll();
+                else if(k === 'width') fitWidth();
+            });
+
+            // Ctrl + عجلة الماوس (ولمس لوحة التتبع بإصبعين)
+            stage.addEventListener('wheel', e => {
+                if(!ready || !(e.ctrlKey || e.metaKey)) return;
+                e.preventDefault();
+                const r = stage.getBoundingClientRect();
+                setScale(scale * (e.deltaY < 0 ? 1.12 : 1 / 1.12), e.clientX - r.left, e.clientY - r.top);
+            }, { passive: false });
+
+            // نقر مزدوج: بين الحجم الكامل وتكبير القراءة
+            stage.addEventListener('dblclick', e => {
+                if(!ready) return;
+                const r = stage.getBoundingClientRect();
+                if(scale <= fitScale * 1.05) setScale(Math.max(fitScale * 2.5, stage.clientWidth / (img.naturalWidth || 1)), e.clientX - r.left, e.clientY - r.top);
+                else fitAll();
+            });
+
+            // القرص بإصبعين
+            let pinch = null;
+            const dist = t => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+            stage.addEventListener('touchstart', e => {
+                if(e.touches.length === 2 && ready){ pinch = { d: dist(e.touches), s: scale }; }
+            }, { passive: true });
+            stage.addEventListener('touchmove', e => {
+                if(pinch && e.touches.length === 2){
+                    e.preventDefault();
+                    const r = stage.getBoundingClientRect();
+                    const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2 - r.left;
+                    const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2 - r.top;
+                    setScale(pinch.s * dist(e.touches) / pinch.d, cx, cy);
+                }
+            }, { passive: false });
+            stage.addEventListener('touchend', e => { if(e.touches.length < 2) pinch = null; }, { passive: true });
+
+            // سحب بالماوس للتحريك عند التكبير
+            let drag = null, moved = false;
+            stage.addEventListener('pointerdown', e => {
+                if(e.pointerType !== 'mouse' || e.button !== 0) return;
+                drag = { x: e.clientX, y: e.clientY, l: stage.scrollLeft, t: stage.scrollTop }; moved = false;
+            });
+            window.addEventListener('pointermove', onMove);
+            window.addEventListener('pointerup', onUp);
+            function onMove(e){
+                if(!drag) return;
+                const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+                if(Math.abs(dx) + Math.abs(dy) > 4){ moved = true; stage.classList.add('grabbing'); }
+                stage.scrollLeft = drag.l - dx; stage.scrollTop = drag.t - dy;
+            }
+            function onUp(){ drag = null; stage.classList.remove('grabbing'); }
+
+            // الضغط على الخلفية يغلق العارض (فقط عندما تكون الصورة كاملة وبدون سحب)
+            stage.addEventListener('click', e => {
+                if(moved){ moved = false; return; }
+                if(e.target === img) return;
+                if(scale <= fitScale * 1.05) closeImageViewer();
+            });
+
+            function onKey(e){
+                if(e.key === 'Escape') closeImageViewer();
+                else if(e.key === '+' || e.key === '=') setScale(scale * 1.35);
+                else if(e.key === '-') setScale(scale / 1.35);
+                else if(e.key === '0') fitAll();
+            }
+            function onResize(){ if(!ready) return; const was = scale <= fitScale * 1.01; metrics(); if(was) scale = fitScale; else scale = Math.max(minScale, Math.min(maxScale, scale)); apply(); }
+            document.addEventListener('keydown', onKey);
+            window.addEventListener('resize', onResize);
+            ov._cleanup = () => {
+                document.removeEventListener('keydown', onKey);
+                window.removeEventListener('resize', onResize);
+                window.removeEventListener('pointermove', onMove);
+                window.removeEventListener('pointerup', onUp);
             };
         }
+        window.closeImageViewer = closeImageViewer;
 
         function downloadFile(taskIndex, fileName) {
             const task = appData.assignments[selectedSection][taskIndex];
@@ -1494,12 +1743,12 @@
         function ensureWeeklyModel(){appData.weeklySchedule=appData.weeklySchedule||{};WEEK_DAYS_AR.forEach(([d])=>{appData.weeklySchedule[d]=appData.weeklySchedule[d]||{};for(let i=1;i<=appData.sections;i++){const cur=appData.weeklySchedule[d][i];if(Array.isArray(cur))continue;const arr=[];if(cur&&typeof cur==='object')Object.entries(cur).forEach(([subject,e])=>arr.push({id:Date.now()+Math.random(),subject,teacher:'',from:e?.from||'',to:e?.to||'',link:e?.link||'',note:e?.note||''}));appData.weeklySchedule[d][i]=arr;}});}
         function getWeeklyEntries(day,sec){ensureWeeklyModel();return appData.weeklySchedule?.[day]?.[sec]||[];}
         function getEffectiveLiveLinks(){const today=currentWeekDayKey();const direct=(appData.liveLinks&&appData.liveLinks[selectedSection])||{};if(Object.keys(direct).length)return{links:direct,source:'today'};if(appData.weeklyScheduleEnabled){const links={};getWeeklyEntries(today,selectedSection).forEach(e=>{if(e&&e.subject)links[e.subject]={link:e.link||'',from:e.from||'',to:e.to||'',note:e.note||'',teacher:e.teacher||''};});if(Object.keys(links).length)return{links,source:'weekly'};}return{links:{},source:'none'};}
-        function effectiveSourceLabel(s){return s==='weekly'?'تم تحميل حصص اليوم من الجدول الأسبوعي تلقائياً.':s==='today'?'هذه هي الحصص المباشرة التي أدخلها المدير لهذا اليوم.':'';}
+        function effectiveSourceLabel(s){return '';}
         function renderWeeklySchedule(){
             const box=document.getElementById('weekly-schedule-list');if(!box)return;ensureWeeklyModel();const day=((document.getElementById('weekly-day-select')||{}).value)||currentWeekDayKey();const sec=Number(((document.getElementById('weekly-section-select')||{}).value)||selectedSection);const entries=getWeeklyEntries(day,sec);box.innerHTML='';
-            const toolbar=document.createElement('div');toolbar.className='schedule-toolbar';toolbar.innerHTML='<div><label>اليوم</label><select id="weekly-day-select" class="editable-input">'+WEEK_DAYS_AR.map(x=>'<option value="'+x[0]+'" '+(day===x[0]?'selected':'')+'>'+x[1]+'</option>').join('')+'</select></div><div><label>الشعبة</label><select id="weekly-section-select" class="editable-input">'+Array.from({length:appData.sections},(_,i)=>'<option value="'+(i+1)+'" '+(sec===i+1?'selected':'')+'>'+escapeHtml(getSectionLabel(i+1))+'</option>').join('')+'</select></div><label class="admin-check"><input id="weekly-enabled-toggle" type="checkbox" '+(appData.weeklyScheduleEnabled?'checked':'')+'> استخدام الجدول تلقائياً</label>';
+            const toolbar=document.createElement('div');toolbar.className='schedule-toolbar';toolbar.innerHTML='<div><label>اليوم</label><select id="weekly-day-select" class="editable-input">'+WEEK_DAYS_AR.map(x=>'<option value="'+x[0]+'" '+(day===x[0]?'selected':'')+'>'+x[1]+'</option>').join('')+'</select></div><div><label>الشعبة</label><select id="weekly-section-select" class="editable-input">'+Array.from({length:appData.sections},(_,i)=>'<option value="'+(i+1)+'" '+(sec===i+1?'selected':'')+'>'+escapeHtml(getSectionLabel(i+1))+'</option>').join('')+'</select></div><label class="admin-check"><input id="weekly-enabled-toggle" type="checkbox" '+(appData.weeklyScheduleEnabled?'checked':'')+'> تفعيل الجدول الأسبوعي</label>';
             box.appendChild(toolbar);toolbar.querySelector('#weekly-day-select').onchange=renderWeeklySchedule;toolbar.querySelector('#weekly-section-select').onchange=renderWeeklySchedule;toolbar.querySelector('#weekly-enabled-toggle').onchange=e=>toggleWeeklySchedule(e.target.checked);
-            const note=document.createElement('div');note.className='notice';note.textContent='القائمة تتكرر أسبوعياً بحسب اليوم والشعبة، ويمكنك وضع أكثر من حصة في اليوم نفسه.';box.appendChild(note);
+            const note=document.createElement('div');note.className='notice';note.textContent='حصص كل يوم تتكرر كل أسبوع، ويمكن إضافة أكثر من حصة في اليوم.';box.appendChild(note);
             if(window.IS_ADMIN){const clear=document.createElement('button');clear.className='btn-sm btn-delete';clear.textContent='حذف جميع حصص هذا اليوم للشعبة';clear.style.margin='10px 0';clear.onclick=()=>{if(!entries.length){alert('لا توجد حصص لحذفها لهذا اليوم.');return;}if(!confirm('هل أنت متأكد من حذف جميع حصص هذا اليوم للشعبة الحالية؟ لا يمكن التراجع عن هذا الإجراء.'))return;entries.splice(0,entries.length);saveData();renderWeeklySchedule();};box.appendChild(clear);}
             const list=document.createElement('div');list.className='schedule-list';entries.forEach((e,i)=>{const row=document.createElement('div');row.className='schedule-row';row.innerHTML='<div class="schedule-index">'+(i+1)+'</div><div><div class="schedule-grid-fields"><input class="editable-input" value="'+escapeHtml(e.subject||'')+'" placeholder="المادة"><input class="editable-input" value="'+escapeHtml(e.teacher||'')+'" placeholder="المعلم (اختياري)"><input type="time" class="editable-input" value="'+(e.from||'')+'"><input type="time" class="editable-input" value="'+(e.to||'')+'"><input class="editable-input full" value="'+escapeHtml(e.link||'')+'" placeholder="رابط الحصة (اختياري)"><input class="editable-input full" value="'+escapeHtml(e.note||'')+'" placeholder="ملاحظة (اختياري)"></div><div class="schedule-actions"><button class="btn-sm btn-add">حفظ</button><button class="btn-sm btn-delete">حذف</button></div></div>';const inp=row.querySelectorAll('input');row.querySelector('.btn-add').onclick=()=>{e.subject=inp[0].value.trim();e.teacher=inp[1].value.trim();e.from=inp[2].value;e.to=inp[3].value;e.link=inp[4].value.trim();e.note=inp[5].value.trim();saveData();renderWeeklySchedule();};row.querySelector('.btn-delete').onclick=()=>{entries.splice(i,1);saveData();renderWeeklySchedule();};list.appendChild(row);});
             const add=document.createElement('div');add.className='schedule-add';add.innerHTML='<h4>إضافة حصة إلى '+escapeHtml(getSectionLabel(sec))+' — '+escapeHtml((WEEK_DAYS_AR.find(x=>x[0]===day)||['',day])[1])+'</h4><div class="schedule-grid-fields"><input id="ws-subject" class="editable-input" placeholder="المادة"><input id="ws-teacher" class="editable-input" placeholder="المعلم (اختياري)"><input id="ws-from" type="time" class="editable-input"><input id="ws-to" type="time" class="editable-input"><input id="ws-link" class="editable-input full" placeholder="رابط الحصة (اختياري)"><input id="ws-note" class="editable-input full" placeholder="ملاحظة (اختياري)"></div><button class="btn-add btn-sm" onclick="weeklyAddNew()">+ إضافة الحصة</button>';list.appendChild(add);box.appendChild(list);
@@ -2359,27 +2608,41 @@
         let booksPackagesType = 'books'; // 'books' or 'packages'
 
         function switchBooksPackagesType(type) {
-            booksPackagesType = type;
-            document.getElementById('booksTab').classList.toggle('active', type === 'books');
-            document.getElementById('packagesTab').classList.toggle('active', type === 'packages');
-            document.getElementById('add-books-packages-title').innerText = type === 'books' ? 'إضافة كتاب جديد' : 'إضافة رزمة جديدة';
-            document.getElementById('new-books-packages-title').placeholder = type === 'books' ? 'اسم الكتاب' : 'اسم الرزمة';
+            booksPackagesType = type === 'packages' ? 'packages' : 'books';
+            const isBooks = booksPackagesType === 'books';
+            // عناصر الإضافة غير موجودة في صفحة الزائر، فلا نفترض وجودها (هذا كان يوقف التبديل إلى الرزم)
+            const booksTab = document.getElementById('booksTab');
+            const packagesTab = document.getElementById('packagesTab');
+            if(booksTab) booksTab.classList.toggle('active', isBooks);
+            if(packagesTab) packagesTab.classList.toggle('active', !isBooks);
+            const addTitle = document.getElementById('add-books-packages-title');
+            if(addTitle) addTitle.innerText = isBooks ? 'إضافة كتاب جديد' : 'إضافة رزمة جديدة';
+            const addInput = document.getElementById('new-books-packages-title');
+            if(addInput) addInput.placeholder = isBooks ? 'اسم الكتاب' : 'اسم الرزمة';
             renderBooksPackages();
         }
 
         function renderBooksPackages() {
             const container = document.getElementById('books-packages-list');
+            if(!container) return;
+            // نزامن حالة التبويبين مع النوع الحالي في كل رسم
+            const bt = document.getElementById('booksTab'), pt = document.getElementById('packagesTab');
+            if(bt) bt.classList.toggle('active', booksPackagesType === 'books');
+            if(pt) pt.classList.toggle('active', booksPackagesType === 'packages');
             container.innerHTML = '';
-            const list = booksPackagesType === 'books' ? appData.books : appData.packages;
-            if(window.IS_ADMIN){const clear=document.createElement('button');clear.className='btn-sm btn-delete';clear.textContent=booksPackagesType==='books'?'حذف جميع الكتب':'حذف جميع الرزم';clear.style.marginBottom='12px';clear.onclick=()=>deleteAllItems(booksPackagesType==='books'?'الكتب':'الرزم',()=>booksPackagesType==='books'?appData.books:appData.packages);container.appendChild(clear);}
-            if (!list || list.length === 0) {
-                container.insertAdjacentHTML('beforeend',`<p style="color:var(--text-light); text-align:center;">لا يوجد ${booksPackagesType === 'books' ? 'كتب' : 'رزم'} حالياً.</p>`);
-                return;
-            }
-            list.forEach((item, index) => {
-                const div = document.createElement('div');
-                div.className = 'data-card';
-                div.innerHTML = `
+            try {
+                const raw = booksPackagesType === 'books' ? appData.books : appData.packages;
+                const list = asArray(raw);
+                if(window.IS_ADMIN){const clear=document.createElement('button');clear.className='btn-sm btn-delete';clear.textContent=booksPackagesType==='books'?'حذف جميع الكتب':'حذف جميع الرزم';clear.style.marginBottom='12px';clear.onclick=()=>deleteAllItems(booksPackagesType==='books'?'الكتب':'الرزم',()=>booksPackagesType==='books'?appData.books:appData.packages);container.appendChild(clear);}
+                if (list.length === 0) {
+                    container.insertAdjacentHTML('beforeend',`<p class="empty-note">لا يوجد ${booksPackagesType === 'books' ? 'كتب' : 'رزم'} حالياً.</p>`);
+                    return;
+                }
+                list.forEach((item, index) => {
+                    if(!item) return;
+                    const div = document.createElement('div');
+                    div.className = 'data-card';
+                    div.innerHTML = `
                     <div class="data-header">
                         <h3 class="editable-value rich-text">${esc(item.title)}</h3>
                         ${safeUrl(item.link) ? `<a href="${safeUrlAttr(item.link)}" target="_blank" rel="noopener noreferrer" class="btn-link editable-value">تحميل ⬇️</a>` : ``}
@@ -2390,8 +2653,12 @@
                         <input class="editable-input" value="${esc(item.link)}" placeholder="رابط التحميل" onchange="updateBooksPackage(${Number(index)}, 'link', this.value)">
                     </div>
                 `;
-                container.appendChild(div);
-            });
+                    container.appendChild(div);
+                });
+            } catch(e) {
+                console.warn('renderBooksPackages error', e);
+                container.innerHTML = '<p class="empty-note">تعذر عرض القائمة، اضغط زر التحديث.</p>';
+            }
         }
 
         function addBooksPackage() {
@@ -2416,6 +2683,7 @@
 
         function updateBooksPackage(index, key, val) {
             const arr = booksPackagesType === 'books' ? appData.books : appData.packages;
+            if(!arr || !arr[index]) return;
             arr[index][key] = val;
             saveData();
             render();
@@ -2559,11 +2827,7 @@
             console.log('- اكتب diagnose() لتشغيل هذا التقرير مرة أخرى');
         };
 
-        // تشغيل التشخيص التلقائي عند التحميل
-        console.log('%c⏳ جاري تحميل التطبيق...', 'color:gray; font-size:12px;');
-        setTimeout(() => {
-            console.log('%c✅ تم التحميل بنجاح! اكتب diagnose() في الكونسول للمزيد من المعلومات', 'color:green; font-weight:bold;');
-        }, 500);
+
 
         // Ensure functions are reachable from inline onclick handlers (debugging helpers)
         window.addAssignment = addAssignment;
@@ -2662,3 +2926,63 @@
     Object.assign(window,{setFont,setColorScheme,setFontScale,setLineHeight,toggleHighContrast,toggleReducedMotion,toggleCompactMode,resetAppearanceSettings,showSection,goBack,setSection,openManageSubjects,addSubject,deleteSubject,addNewSection,renameSection,deleteSection,grantAdminByEmail,grantAdmin,revokeAdmin,renderKnownAccounts,toggleWeeklySchedule,weeklyAddNew,render});
 })();
     
+
+
+// ===== ذكر الرئيسية: يتغير كل 3 دقائق =====
+var DHIKR_LIST = [
+  { t: 'اللَّهُمَّ أَنْتَ رَبِّي لَا إِلَٰهَ إِلَّا أَنْتَ، خَلَقْتَنِي وَأَنَا عَبْدُكَ، وَأَنَا عَلَىٰ عَهْدِكَ وَوَعْدِكَ مَا اسْتَطَعْتُ، أَعُوذُ بِكَ مِنْ شَرِّ مَا صَنَعْتُ، أَبُوءُ لَكَ بِنِعْمَتِكَ عَلَيَّ، وَأَبُوءُ بِذَنْبِي فَاغْفِرْ لِي، فَإِنَّهُ لَا يَغْفِرُ الذُّنُوبَ إِلَّا أَنْتَ', h: 'سيد الاستغفار', s: 'رواه البخاري' },
+  { t: 'اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ ۚ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ ۚ لَهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الْأَرْضِ ۗ مَنْ ذَا الَّذِي يَشْفَعُ عِنْدَهُ إِلَّا بِإِذْنِهِ ۚ يَعْلَمُ مَا بَيْنَ أَيْدِيهِمْ وَمَا خَلْفَهُمْ ۖ وَلَا يُحِيطُونَ بِشَيْءٍ مِنْ عِلْمِهِ إِلَّا بِمَا شَاءَ ۚ وَسِعَ كُرْسِيُّهُ السَّمَاوَاتِ وَالْأَرْضَ ۖ وَلَا يَئُودُهُ حِفْظُهُمَا ۚ وَهُوَ الْعَلِيُّ الْعَظِيمُ', h: 'آية الكرسي', s: 'سورة البقرة، الآية ٢٥٥' },
+  { t: 'رَبِّ اشْرَحْ لِي صَدْرِي، وَيَسِّرْ لِي أَمْرِي، وَاحْلُلْ عُقْدَةً مِنْ لِسَانِي، يَفْقَهُوا قَوْلِي', h: 'دعاء موسى عليه السلام', s: 'سورة طه، الآيات ٢٥ - ٢٨' },
+  { t: 'اللَّهُمَّ انْفَعْنِي بِمَا عَلَّمْتَنِي، وَعَلِّمْنِي مَا يَنْفَعُنِي، وَزِدْنِي عِلْمًا', h: 'دعاء طلب العلم', s: 'رواه الترمذي وابن ماجه' },
+  { t: 'لَا إِلَٰهَ إِلَّا أَنْتَ سُبْحَانَكَ إِنِّي كُنْتُ مِنَ الظَّالِمِينَ', h: 'دعاء ذي النون', s: 'سورة الأنبياء، الآية ٨٧' },
+  { t: 'لَا إِلَٰهَ إِلَّا اللَّهُ الْعَظِيمُ الْحَلِيمُ، لَا إِلَٰهَ إِلَّا اللَّهُ رَبُّ الْعَرْشِ الْعَظِيمِ، لَا إِلَٰهَ إِلَّا اللَّهُ رَبُّ السَّمَاوَاتِ وَرَبُّ الْأَرْضِ وَرَبُّ الْعَرْشِ الْكَرِيمِ', h: 'دعاء الكرب', s: 'متفق عليه' },
+  { t: 'اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْهَمِّ وَالْحَزَنِ، وَالْعَجْزِ وَالْكَسَلِ، وَالْبُخْلِ وَالْجُبْنِ، وَضَلَعِ الدَّيْنِ وَغَلَبَةِ الرِّجَالِ', h: 'دعاء الهمّ والحزن', s: 'رواه البخاري' },
+  { t: 'اللَّهُمَّ إِنَّكَ عَفُوٌّ تُحِبُّ الْعَفْوَ فَاعْفُ عَنِّي', h: 'دعاء العفو', s: 'رواه الترمذي' },
+  { t: 'يَا مُقَلِّبَ الْقُلُوبِ ثَبِّتْ قَلْبِي عَلَىٰ دِينِكَ', h: 'دعاء الثبات', s: 'رواه الترمذي' },
+  { t: 'اللَّهُمَّ أَعِنِّي عَلَىٰ ذِكْرِكَ وَشُكْرِكَ وَحُسْنِ عِبَادَتِكَ', h: 'دعاء الإعانة على العبادة', s: 'رواه أبو داود والنسائي' },
+  { t: 'سُبْحَانَ اللَّهِ وَبِحَمْدِهِ، سُبْحَانَ اللَّهِ الْعَظِيمِ', h: 'كلمتان خفيفتان على اللسان', s: 'متفق عليه' },
+  { t: 'رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ', h: 'دعاء جامع', s: 'سورة البقرة، الآية ٢٠١' },
+  { t: 'حَسْبِيَ اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ عَلَيْهِ تَوَكَّلْتُ وَهُوَ رَبُّ الْعَرْشِ الْعَظِيمِ', h: 'التوكل على الله', s: 'سورة التوبة، الآية ١٢٩' },
+  { t: 'أَسْتَغْفِرُ اللَّهَ الْعَظِيمَ الَّذِي لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ وَأَتُوبُ إِلَيْهِ', h: 'الاستغفار', s: 'رواه أبو داود والترمذي' },
+  { t: 'اللَّهُمَّ إِنِّي أَسْأَلُكَ الْهُدَىٰ وَالتُّقَىٰ وَالْعَفَافَ وَالْغِنَىٰ', h: 'دعاء الهدى والتقى', s: 'رواه مسلم' },
+  { t: 'اللَّهُمَّ أَصْلِحْ لِي دِينِي الَّذِي هُوَ عِصْمَةُ أَمْرِي، وَأَصْلِحْ لِي دُنْيَايَ الَّتِي فِيهَا مَعَاشِي، وَأَصْلِحْ لِي آخِرَتِي الَّتِي فِيهَا مَعَادِي، وَاجْعَلِ الْحَيَاةَ زِيَادَةً لِي فِي كُلِّ خَيْرٍ، وَاجْعَلِ الْمَوْتَ رَاحَةً لِي مِنْ كُلِّ شَرٍّ', h: 'دعاء إصلاح الأحوال', s: 'رواه مسلم' },
+  { t: 'اللَّهُمَّ رَحْمَتَكَ أَرْجُو فَلَا تَكِلْنِي إِلَىٰ نَفْسِي طَرْفَةَ عَيْنٍ، وَأَصْلِحْ لِي شَأْنِي كُلَّهُ، لَا إِلَٰهَ إِلَّا أَنْتَ', h: 'دعاء الرجاء', s: 'رواه أبو داود' },
+  { t: 'سُبْحَانَ اللَّهِ، وَالْحَمْدُ لِلَّهِ، وَلَا إِلَٰهَ إِلَّا اللَّهُ، وَاللَّهُ أَكْبَرُ', h: 'أحبّ الكلام إلى الله', s: 'رواه مسلم' },
+  { t: 'لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ', h: 'كنز من كنوز الجنة', s: 'متفق عليه' }
+];
+var dhikrIndex = -1, dhikrTimer = null;
+function showDhikr(step){
+  var card = document.getElementById('dhikr-card');
+  if(!card) return;
+  if(dhikrIndex < 0) dhikrIndex = Math.floor(Math.random() * DHIKR_LIST.length);
+  else dhikrIndex = (dhikrIndex + step + DHIKR_LIST.length) % DHIKR_LIST.length;
+  var d = DHIKR_LIST[dhikrIndex];
+  var body = card.querySelector('.dhikr-body');
+  body.classList.add('fade');
+  setTimeout(function(){
+    card.querySelector('.dhikr-title').textContent = d.h;
+    card.querySelector('.dhikr-text').textContent = d.t;
+    card.querySelector('.dhikr-src').textContent = d.s;
+    card.classList.toggle('long', d.t.length > 170);
+    body.classList.remove('fade');
+  }, 260);
+}
+function initDhikr(){
+  if(typeof DHIKR_LIST === 'undefined' || !DHIKR_LIST || !DHIKR_LIST.length) return;
+  var home = document.getElementById('home');
+  if(!home) return;
+  if(!document.getElementById('dhikr-card')){
+    var card = document.createElement('div');
+    card.id = 'dhikr-card'; card.className = 'dhikr-card';
+    card.innerHTML = '<div class="dhikr-body"><div class="dhikr-title"></div><p class="dhikr-text"></p><div class="dhikr-src"></div></div>' +
+      '<button type="button" class="dhikr-next" aria-label="التالي" title="التالي">‹</button>';
+    card.querySelector('.dhikr-next').onclick = function(){ showDhikr(1); resetDhikrTimer(); };
+    home.insertBefore(card, home.firstChild);
+    showDhikr(0);
+    resetDhikrTimer();
+  }
+}
+function resetDhikrTimer(){
+  clearInterval(dhikrTimer);
+  dhikrTimer = setInterval(function(){ if(document.visibilityState === 'visible') showDhikr(1); }, 3 * 60 * 1000);
+}
