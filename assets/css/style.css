@@ -16,43 +16,7 @@
             --settings-bg: #ffffff;
         }
 
-        /* Local fonts bundled with the project */
-        @font-face {
-            font-family: 'ALDHABI';
-            src: url('ALDHABI.TTF') format('truetype');
-            font-weight: normal;
-            font-style: normal;
-            font-display: swap;
-        }
-        @font-face {
-            font-family: 'AlaTypoo';
-            src: url('alfont_com_ArbFONTS-AlaTypoo-Medium.ttf') format('truetype');
-            font-weight: normal;
-            font-style: normal;
-            font-display: swap;
-        }
-        @font-face {
-            font-family: 'DWNOUTSH';
-            src: url('DWNSH2.TTF') format('truetype');
-            font-weight: normal;
-            font-style: normal;
-            font-display: swap;
-        }
-        @font-face {
-            font-family: 'KFXFTOUT';
-            src: url('KFXFTOUT.TTF') format('truetype');
-            font-weight: normal;
-            font-style: normal;
-            font-display: swap;
-        }
-        @font-face {
-            font-family: 'PTBLDBRK';
-            src: url('PTBLDBRK.TTF') format('truetype');
-            font-weight: normal;
-            font-style: normal;
-            font-display: swap;
-        }
-        * {
+                * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
@@ -702,11 +666,6 @@ body.edit-mode .editable-value{display:none!important}.admin-only{display:none!i
 @media (max-width:640px){.page-title h1{font-size:1.55rem}.dashboard-grid{grid-template-columns:1fr}.data-card{padding:14px}.main-content{padding:14px}.feature-card{min-height:auto}}
 
 /* relative font assets from assets/css */
-@font-face{font-family:'ALDHABI';src:url('../../ALDHABI.TTF') format('truetype');font-display:swap}
-@font-face{font-family:'AlaTypoo';src:url('../../alfont_com_ArbFONTS-AlaTypoo-Medium.ttf') format('truetype');font-display:swap}
-@font-face{font-family:'DWNOUTSH';src:url('../../DWNSH2.TTF') format('truetype');font-display:swap}
-@font-face{font-family:'KFXFTOUT';src:url('../../KFEXTOUT.TTF') format('truetype');font-display:swap}
-@font-face{font-family:'PTBLDBRK';src:url('../../PTBLDBRK.TTF') format('truetype');font-display:swap}
 .header{display:flex;justify-content:space-between;gap:16px}.header-inner{display:flex;flex-direction:column;gap:3px;flex:1}.header .admin-topbar{order:2}
 
 .admin-signout{margin-inline-start:auto}
