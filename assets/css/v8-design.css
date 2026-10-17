@@ -1,0 +1,60 @@
+/* V8 — لمسات ثلاثية الأبعاد وحركة هادئة فوق تصميم V6. احذف سطر الربط للرجوع. */
+html[data-theme] body{position:relative}
+#v7-dust{position:fixed;top:0;right:0;bottom:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:.7}
+html[data-theme] body .main-content,html[data-theme] body .sidebar{position:relative;z-index:1}
+#v7-progress{position:fixed;top:0;left:0;right:0;height:3px;z-index:3000;transform-origin:right;transform:scaleX(0);background:linear-gradient(90deg,var(--v-gold2),var(--v-gold),var(--v-navy));box-shadow:0 0 10px var(--v-gold)}
+html[data-theme] body:before{display:block!important;content:"";position:fixed;top:-20%;right:-20%;bottom:-20%;left:-20%;z-index:0;pointer-events:none;
+ background:radial-gradient(40% 35% at 20% 25%,var(--v-goldbg),transparent 70%),radial-gradient(35% 30% at 80% 70%,rgba(35,54,95,.09),transparent 70%);
+ animation:v7aurora 22s ease-in-out infinite alternate}
+@keyframes v7aurora{to{transform:translate3d(4%,3%,0) rotate(6deg) scale(1.08)}}
+
+/* ----- المشهد الثلاثي الأبعاد ----- */
+.v7-hero{position:relative;margin:0 0 22px;padding:26px 18px 12px;border-radius:26px;overflow:hidden;text-align:center;
+ background:linear-gradient(160deg,var(--v-surface),var(--v-surface2));border:1px solid var(--v-line2);box-shadow:var(--v-shadow-lg)}
+.v7-hero:before{content:"";position:absolute;top:0;right:0;bottom:0;left:0;background:radial-gradient(60% 70% at 50% 100%,var(--v-goldbg),transparent 70%);pointer-events:none}
+.v7-hero h2{position:relative;margin:0 0 4px;font-size:clamp(1.4rem,4.2vw,2.1rem);font-weight:900;color:var(--v-ink);
+ background:linear-gradient(100deg,var(--v-ink) 30%,var(--v-gold) 50%,var(--v-ink) 70%);background-size:220% 100%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:v7shine 6s linear infinite}
+@keyframes v7shine{from{background-position:110% 0}to{background-position:-110% 0}}
+.v7-hero p{position:relative;margin:0 0 6px;color:var(--v-soft);font-size:.9rem}
+
+/* ----- بطاقات مائلة ----- */
+@media (hover:hover){
+ html[data-theme] body .feature-card{transition:transform .28s cubic-bezier(.2,.8,.2,1),box-shadow .3s,border-color .3s!important}
+ html[data-theme] body .feature-card:hover{transform:translateY(-7px)!important}
+ html[data-theme] body .feature-card .feature-icon{transition:transform .35s cubic-bezier(.2,.8,.2,1)}
+ html[data-theme] body .feature-card:hover .feature-icon{transform:scale(1.1)}
+}
+/* ظهور متتابع */
+.v7-in{animation:v7in .6s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i,0)*45ms)}
+@keyframes v7in{from{opacity:0;transform:translateY(18px) scale(.97)}}
+html[data-theme] body .btn-save,html[data-theme] body .btn-sm{transition:transform .15s,box-shadow .2s}
+html[data-theme] body .btn-save:active,html[data-theme] body .btn-sm:active{transform:scale(.95)}
+body.reduced-motion .v7-in,body.reduced-motion .v7-hero h2,html[data-theme] body.reduced-motion:before{animation:none!important}
+body.reduced-motion #v7-dust{display:none}
+@media (prefers-reduced-motion:reduce){.v7-in,.v7-hero h2,html[data-theme] body:before{animation:none!important}#v7-dust{display:none}}
+
+/* ===== V8: لمسة جديدة ===== */
+html[data-theme] body .sidebar{-webkit-backdrop-filter:blur(16px) saturate(1.3)!important;backdrop-filter:blur(16px) saturate(1.3)!important;background:linear-gradient(180deg,var(--v-surface),var(--v-surface2))!important}
+html[data-theme] body .main-content{perspective:1400px}
+html[data-theme] body .content-area.active{animation:v8page .55s cubic-bezier(.2,.8,.2,1) both;transform-origin:50% 0}
+@keyframes v8page{from{opacity:0;transform:translateY(22px) rotateX(5deg)}}
+#v8-spot{position:fixed;left:0;top:0;width:420px;height:420px;margin:-210px 0 0 -210px;border-radius:50%;pointer-events:none;z-index:0;opacity:0;transition:opacity .4s;
+ background:radial-gradient(closest-side,var(--v-goldbg),transparent);will-change:transform}
+/* عملة ثلاثية الأبعاد في مركز الحلقة */
+/* بطاقات: أيقونة بلاطة ثلاثية وإطار متوهج */
+html[data-theme] body .feature-card{background:linear-gradient(160deg,var(--v-surface),var(--v-surface2))!important;border-radius:20px!important}
+html[data-theme] body .feature-card:hover{box-shadow:0 18px 40px rgba(80,58,20,.18),0 0 0 1px var(--v-gold)!important}
+html[data-theme] body .feature-card .feature-icon{box-shadow:0 10px 18px rgba(80,58,20,.2),inset 0 1px 0 rgba(255,255,255,.6)!important}
+html[data-theme] body .dhikr-card{border:1px solid var(--v-line2)!important;box-shadow:var(--v-shadow-lg),0 0 0 4px var(--v-goldbg)!important;border-radius:22px!important}
+html[data-theme] body .btn-save,html[data-theme] body #install-btn{background:linear-gradient(135deg,var(--v-gold2),var(--v-gold))!important;position:relative;overflow:hidden}
+html[data-theme] body .btn-save:after{content:"";position:absolute;top:0;bottom:0;width:40%;left:-60%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.45),transparent);transform:skewX(-20deg);transition:left .6s}
+html[data-theme] body .btn-save:hover:after{left:130%}
+html[data-theme] body .page-title h1{background:linear-gradient(100deg,var(--v-ink),var(--v-gold));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;font-weight:900}
+@media (prefers-reduced-motion:reduce){.v8-coin,html[data-theme] body .content-area.active{animation:none!important}}
+body.reduced-motion .v8-coin,body.reduced-motion .content-area.active{animation:none!important}
+
+/* خلفية WebGL ثلاثية الأبعاد */
+#v9-bg{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0}
+.v7-hero{padding:34px 18px 30px}
+.v7-hero h2{font-size:clamp(1.7rem,5.4vw,2.8rem)}
+.v7-hero:after{content:"";display:block;width:72px;height:4px;border-radius:4px;margin:14px auto 0;background:linear-gradient(90deg,var(--v-gold2),var(--v-gold));box-shadow:0 0 14px var(--v-gold)}
