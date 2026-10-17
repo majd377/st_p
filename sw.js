@@ -1,5 +1,5 @@
 /* =====================================================================
-   Service Worker — نسخة V7
+   Service Worker — نسخة V8
    ---------------------------------------------------------------------
    تغييرات مهمة عن النسخة السابقة:
    1) لوحة الإدارة (/admin/) لا تُخزَّن إطلاقاً — لا نسخة مخبأة من صفحة
@@ -9,18 +9,19 @@
    3) طلبات Firebase/Google لا تُخزَّن أبداً.
    ===================================================================== */
 
-const CACHE_NAME = 'app-shell-v7';
-const ASSET_CACHE = 'assets-v7';
+const CACHE_NAME = 'app-shell-v8';
+const ASSET_CACHE = 'assets-v8';
 
 const PRECACHE = [
   './',
   './index.html',
-  './assets/css/style.css?v=20261016-7',
-  './assets/css/v4-overrides.css?v=20261016-7',
-  './assets/css/v7-design.css?v=20261016-7',
-  './assets/js/v7-fx.js?v=20261016-7',
-  './assets/js/firebase-config.js?v=20261016-7',
-  './assets/js/app.js?v=20261016-7',
+  './assets/css/style.css?v=20261016-8',
+  './assets/css/v4-overrides.css?v=20261016-8',
+  './assets/css/v8-design.css?v=20261016-8',
+  './assets/js/v8-fx.js?v=20261016-8',
+  './assets/js/boot.js?v=20261016-8',
+  './assets/js/firebase-config.js?v=20261016-8',
+  './assets/js/app.js?v=20261016-8',
   './logo.png'
 ];
 

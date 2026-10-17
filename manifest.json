@@ -1,10 +1,10 @@
 {
   "name": "المنارة الطلابية",
   "short_name": "المنارة الطلابية",
-  "start_url": ".",
+  "start_url": "./",
   "display": "standalone",
-  "background_color": "#f2f6f5",
-  "theme_color": "#1f5c70",
+  "background_color": "#f6f1e8",
+  "theme_color": "#b97f1d",
   "lang": "ar",
   "icons": [
     {
@@ -17,8 +17,18 @@
       "src": "icon-rounded-512.png?v=2",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "maskable any"
+      "purpose": "any"
+    },
+    {
+      "src": "icon-rounded-512.png?v=2",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
-  "description": "بوابة تعليمية لطلاب دفعة 2010"
+  "description": "بوابة تعليمية لطلاب دفعة 2010",
+  "id": "./",
+  "scope": "./",
+  "dir": "rtl",
+  "orientation": "any"
 }
