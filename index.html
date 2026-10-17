@@ -5,7 +5,9 @@
 <meta charset="utf-8"/>
 <title>المنارة الطلابية</title>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
-<meta content="#eef4f7" name="theme-color"/>
+<meta name="referrer" content="strict-origin-when-cross-origin"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://*.firebaseio.com https://cdnjs.cloudflare.com https://vercel.live https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline' https://vercel.live; img-src 'self' data: blob: https:; font-src 'self' data: https://vercel.live https://assets.vercel.com; connect-src 'self' https://www.gstatic.com https://*.firebaseio.com wss://*.firebaseio.com https://*.googleapis.com https://vercel.live https://vitals.vercel-insights.com wss://ws-us3.pusher.com; frame-src https://vercel.live; object-src 'none'; base-uri 'none'; form-action 'none'"/>
+<meta content="#f6f1e8" name="theme-color"/>
 <meta content="المنارة الطلابية — بوابة تعليمية لطلاب دفعة 2010." name="description"/>
 <meta content="ar" property="og:locale"/>
 <meta content="website" property="og:type"/>
@@ -13,13 +15,18 @@
 <meta content="بوابة تعليمية عصرية ومنظمة لطلاب دفعة 2010." property="og:description"/>
 <link href="icon-rounded-64.png?v=2" rel="icon" type="image/png" sizes="64x64"/>
 <link href="icon-rounded-192.png?v=2" rel="apple-touch-icon" sizes="192x192"/>
-<link href="assets/css/style.css?v=20260914-3" rel="stylesheet"/>
-<link href="assets/css/v4-overrides.css?v=20260914-3" rel="stylesheet"/>
+<link href="assets/css/style.css?v=20261016-8" rel="stylesheet"/>
+<link href="assets/css/v4-overrides.css?v=20261016-8" rel="stylesheet"/>
+<link href="assets/css/v6-design.css?v=20261016-8" rel="stylesheet"/>
+<link href="assets/css/v8-design.css?v=20261016-8" rel="stylesheet"/>
+<script src="assets/js/boot.js?v=20261016-8"></script>
+<script>try{var __s=JSON.parse(localStorage.getItem('userSettings')||'{}');document.documentElement.setAttribute('data-theme',(__s.themeVersion===6&&__s.colorScheme==='dark')?'dark':'light');}catch(e){document.documentElement.setAttribute('data-theme','light');}</script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<script src="assets/js/firebase-config.js?v=20260914-3"></script>
+<script src="assets/js/firebase-config.js?v=20261016-8"></script>
 <script>window.APP_ROLE='viewer';window.IS_ADMIN=false;window.AUTH_USER=null;</script>
-<script defer="" src="assets/js/app.js?v=20260914-3"></script>
+<script defer="" src="assets/js/app.js?v=20261016-8"></script>
+<script defer="" src="assets/js/v8-fx.js?v=20261016-8"></script>
 </head>
 <body>
 <!-- Splash Overlay -->
@@ -101,20 +108,6 @@
             </li>
 </ul>
 </nav>
-<!-- PWA install banner (hidden by default) -->
-<div id="pwa-install-banner" style="display:none; position:fixed; left:16px; right:16px; bottom:18px; background:#fff; border-radius:10px; box-shadow:0 8px 20px rgba(0,0,0,0.08); padding:12px 14px; z-index:2000; direction:rtl; align-items:center; gap:10px;">
-<div style="display:flex; gap:10px; align-items:center;">
-<img alt="icon" src="logo.png" style="width:44px; height:44px; border-radius:8px; object-fit:cover;"/>
-<div style="text-align:right;">
-<div style="font-weight:700;">تثبيت التطبيق</div>
-<div style="color:var(--text-light); font-size:0.95rem;">يمكنك تثبيت منصة " المنارة الطلابية " كتطبيق</div>
-</div>
-</div>
-<div style="margin-inline-start:auto; display:flex; gap:8px;">
-<button class="btn-sm btn-delete" id="btnDismissPWA" style="background:#ef4444;">إغلاق</button>
-<button class="btn-sm btn-save" id="btnInstallPWA">تثبيت</button>
-</div>
-</div>
 <main class="main-content">
 <div class="header">
 <div class="header-inner"><div class="page-title">
@@ -492,8 +485,8 @@
 </section>
 <section class="settings-panel"><div class="settings-panel-head"><div><h3>المظهر</h3><p></p></div><span class="settings-symbol">◐</span></div>
 <div class="theme-grid theme-preview-grid">
-<button class="theme-option" id="scheme-dark-btn" onclick="setColorScheme('dark')"><span class="theme-swatch dark"></span><b>الداكن</b><small>أسود فحمي بلمسة ذهبية</small></button>
-<button class="theme-option" id="scheme-light-btn" onclick="setColorScheme('light')"><span class="theme-swatch light"></span><b>الفاتح</b><small>أبيض دافئ بلمسة ذهبية</small></button>
+<button class="theme-option" id="scheme-dark-btn" onclick="setColorScheme('dark')"><span class="theme-swatch dark"></span><b>الداكن</b><small>خلفية داكنة بلمسة ذهبية</small></button>
+<button class="theme-option" id="scheme-light-btn" onclick="setColorScheme('light')"><span class="theme-swatch light"></span><b>الفاتح</b><small>خلفية فاتحة بلمسة ذهبية</small></button>
 </div>
 <div class="appearance-switches"><button class="switch-card" onclick="toggleHighContrast()"><span><b>وضوح أعلى</b><small>نص وحدود أوضح</small></span><i id="contrast-state">○</i></button><button class="switch-card" onclick="toggleReducedMotion()"><span><b>حركة أقل</b><small>انتقالات أخف</small></span><i id="motion-state">○</i></button><button class="switch-card" onclick="toggleCompactMode()"><span><b>وضع مدمج</b><small>مسافات أقل</small></span><i id="compact-state">○</i></button></div>
 </section>

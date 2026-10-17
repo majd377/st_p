@@ -2,32 +2,76 @@
   "rules": {
     ".read": false,
     ".write": false,
+
     "appData": {
       ".read": true,
-      ".write": "auth != null && auth.token.email_verified == true && (auth.token.email == 'mjdshbyr449@gmail.com' || root.child('adminUsers').child(auth.uid).exists())"
+      ".write": "auth != null && auth.token.email_verified == true && auth.token.firebase.sign_in_provider == 'google.com' && (auth.token.email == 'mjdshbyr449@gmail.com' || root.child('adminUsers').child(auth.uid).exists())",
+      ".validate": "newData.hasChildren(['sections'])",
+      "sections": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 60" },
+      "weeklyScheduleEnabled": { ".validate": "newData.isBoolean()" }
     },
+
     "adminUsers": {
+      ".read": "auth != null && auth.token.email_verified == true && auth.token.email == 'mjdshbyr449@gmail.com'",
+      ".write": "auth != null && auth.token.email_verified == true && auth.token.firebase.sign_in_provider == 'google.com' && auth.token.email == 'mjdshbyr449@gmail.com'",
+      "$uid": {
+        ".read": "auth != null && auth.token.email_verified == true && (auth.token.email == 'mjdshbyr449@gmail.com' || auth.uid == $uid)",
+        ".write": "auth != null && auth.token.email_verified == true && auth.token.firebase.sign_in_provider == 'google.com' && auth.token.email == 'mjdshbyr449@gmail.com'",
+        ".validate": "newData.hasChildren(['email','displayName','addedAt'])",
+        "email":       { ".validate": "newData.isString() && newData.val().length <= 200" },
+        "displayName": { ".validate": "newData.isString() && newData.val().length <= 150" },
+        "addedAt":     { ".validate": "newData.isNumber()" },
+        "$other":      { ".validate": false }
+      }
+    },
+
+    "loginDirectory": {
       ".read": "auth != null && auth.token.email_verified == true && auth.token.email == 'mjdshbyr449@gmail.com'",
       ".write": "auth != null && auth.token.email_verified == true && auth.token.email == 'mjdshbyr449@gmail.com'",
       "$uid": {
-        ".read": "auth != null && auth.token.email_verified == true && (auth.token.email == 'mjdshbyr449@gmail.com' || auth.uid == $uid)",
-        ".write": "auth != null && auth.token.email_verified == true && auth.token.email == 'mjdshbyr449@gmail.com'",
-        ".validate": "newData.hasChildren(['email','displayName','addedAt'])"
+        ".read": "auth != null && auth.uid == $uid",
+        ".write": "auth != null && auth.token.email_verified == true && auth.token.firebase.sign_in_provider == 'google.com' && auth.uid == $uid && !data.exists() && newData.exists()",
+        ".validate": "newData.hasChildren(['uid','email','timestamp']) && newData.child('uid').val() == auth.uid && newData.child('email').val() == auth.token.email",
+        "uid":         { ".validate": "newData.isString() && newData.val().length <= 128" },
+        "email":       { ".validate": "newData.isString() && newData.val().length <= 200" },
+        "displayName": { ".validate": "newData.isString() && newData.val().length <= 150" },
+        "timestamp":   { ".validate": "newData.isNumber()" },
+        "$other":      { ".validate": false }
       }
     },
-    "loginDirectory": {
+
+    "loginEvents": {
       ".read": "auth != null && auth.token.email_verified == true && auth.token.email == 'mjdshbyr449@gmail.com'",
+      ".write": "auth != null && auth.token.email_verified == true && auth.token.email == 'mjdshbyr449@gmail.com'",
       "$uid": {
-        ".write": "auth != null && auth.token.email_verified == true && auth.token.firebase.sign_in_provider == 'google.com' && auth.uid == $uid && !data.exists() && newData.child('uid').val() == auth.uid && newData.child('email').val() == auth.token.email",
-        ".validate": "newData.hasChildren(['uid','email','timestamp'])"
+        ".read": "auth != null && auth.uid == $uid",
+        "$eventId": {
+          ".write": "auth != null && auth.token.email_verified == true && auth.token.firebase.sign_in_provider == 'google.com' && auth.uid == $uid && !data.exists() && newData.exists()",
+          ".validate": "newData.hasChildren(['uid','email','allowed','ts']) && newData.child('uid').val() == auth.uid && newData.child('email').val() == auth.token.email",
+          "uid":         { ".validate": "newData.isString() && newData.val().length <= 128" },
+          "email":       { ".validate": "newData.isString() && newData.val().length <= 200" },
+          "displayName": { ".validate": "newData.isString() && newData.val().length <= 150" },
+          "allowed":     { ".validate": "newData.isBoolean()" },
+          "role":        { ".validate": "newData.isString() && newData.val().length <= 20" },
+          "ts":          { ".validate": "newData.isNumber() && newData.val() <= now + 120000 && newData.val() >= now - 120000" },
+          "browser":     { ".validate": "newData.isString() && newData.val().length <= 60" },
+          "os":          { ".validate": "newData.isString() && newData.val().length <= 60" },
+          "device":      { ".validate": "newData.isString() && newData.val().length <= 40" },
+          "platform":    { ".validate": "newData.isString() && newData.val().length <= 60" },
+          "language":    { ".validate": "newData.isString() && newData.val().length <= 20" },
+          "timezone":    { ".validate": "newData.isString() && newData.val().length <= 60" },
+          "screen":      { ".validate": "newData.isString() && newData.val().length <= 20" },
+          "ua":          { ".validate": "newData.isString() && newData.val().length <= 400" },
+          "$other":      { ".validate": false }
+        }
       }
     },
+
     "accessLogs": {
       ".read": "auth != null && auth.token.email_verified == true && auth.token.email == 'mjdshbyr449@gmail.com'",
+      ".write": "auth != null && auth.token.email_verified == true && auth.token.email == 'mjdshbyr449@gmail.com'",
       "$uid": {
-        ".write": "auth != null && auth.token.email_verified == true && auth.token.firebase.sign_in_provider == 'google.com' && (auth.token.email == 'mjdshbyr449@gmail.com' || root.child('adminUsers').child(auth.uid).exists()) && auth.uid == $uid && !data.exists() && newData.child('uid').val() == auth.uid && newData.child('email').val() == auth.token.email && newData.child('allowed').val() == true",
-        ".validate": "newData.hasChildren(['uid','email','displayName','timestamp','allowed'])",
-        ".read": "auth != null && auth.token.email_verified == true && (auth.token.email == 'mjdshbyr449@gmail.com' || auth.uid == $uid)"
+        ".read": "auth != null && auth.uid == $uid"
       }
     }
   }

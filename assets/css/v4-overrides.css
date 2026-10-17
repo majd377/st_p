@@ -412,3 +412,206 @@ html{scrollbar-width:thin;scrollbar-color:#c18b35 #171717}
   .feature-card h3{font-size:.9rem!important}
   .feature-card p{font-size:.7rem!important}
 }
+
+/* =====================================================================
+   V5 — إصلاحات العرض والحماية
+   ===================================================================== */
+
+/* ---------- 1) الحفاظ على فواصل الأسطر في المنشورات ----------
+   المحتوى يُعرض داخل HTML، و HTML يبتلع فواصل الأسطر افتراضياً.
+   pre-wrap يُبقي الأسطر والفقرات كما كتبها المدير تماماً. */
+.rich-text,
+.post-body,
+.task-desc .editable-value,
+.lesson-name.rich-text,
+.session-info {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.post-body {
+  color: var(--text-light);
+  margin: 6px 0 12px;
+  line-height: calc(var(--line-height-scale, 1.7) * 1em);
+  font-size: 1rem;
+}
+
+/* فقرة فارغة بين الأسطر تبقى مرئية */
+.post-body:empty { display: none; }
+
+/* بطاقة المنشور: مساحة أريح للقراءة */
+.data-card .data-header h3 {
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+/* مناطق الكتابة الطويلة */
+textarea.editable-input,
+textarea.editable-textarea {
+  width: 100%;
+  min-height: 90px;
+  resize: vertical;
+  line-height: 1.7;
+  font-family: inherit;
+  white-space: pre-wrap;
+}
+
+/* ---------- 2) بوابة الدخول ---------- */
+.gate-hint {
+  margin-top: 16px;
+  font-size: .82rem;
+  line-height: 1.7;
+  color: var(--text-light);
+  opacity: .85;
+}
+#admin-gate-msg.gate-error {
+  color: #e05a4a;
+  font-weight: 600;
+}
+.admin-current-user {
+  font-size: .85rem;
+  color: var(--text-light);
+  margin-inline-start: 10px;
+  margin-inline-end: auto;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- 3) إشعارات الدخول ---------- */
+.login-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+.login-toolbar-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.login-toolbar-actions select.editable-input {
+  min-width: 190px;
+  max-width: 100%;
+}
+
+.login-day {
+  margin-top: 18px;
+  border: 1px solid rgba(128, 128, 128, .18);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.login-day-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: rgba(128, 128, 128, .08);
+}
+.login-day-head h4 { margin: 0; font-size: .98rem; }
+.login-day-count { font-size: .8rem; color: var(--text-light); }
+.login-day-body { padding: 6px 10px 10px; }
+
+.login-event {
+  display: flex;
+  gap: 12px;
+  padding: 11px 6px;
+  border-top: 1px solid rgba(128, 128, 128, .13);
+}
+.login-day-body .login-event:first-child { border-top: 0; }
+
+.login-event-time {
+  flex: 0 0 auto;
+  min-width: 86px;
+  font-size: .82rem;
+  color: var(--text-light);
+  font-variant-numeric: tabular-nums;
+  padding-top: 2px;
+}
+.login-event-body { flex: 1 1 auto; min-width: 0; }
+.login-event-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 3px;
+}
+.login-event-head strong { overflow-wrap: anywhere; }
+.login-event-mail,
+.login-event-device,
+.login-event-extra {
+  font-size: .84rem;
+  color: var(--text-light);
+  overflow-wrap: anywhere;
+  line-height: 1.7;
+}
+.login-event-device { font-weight: 600; opacity: .95; }
+.login-event-extra { opacity: .75; font-size: .78rem; }
+
+.login-event.denied { background: rgba(224, 90, 74, .07); border-radius: 10px; }
+.login-event.is-new { box-shadow: inset 3px 0 0 var(--primary-color); }
+
+.login-badge {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: .72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.login-badge.ok    { background: rgba(46, 160, 110, .16); color: #2ea06e; }
+.login-badge.owner { background: rgba(242, 160, 27, .18); color: #d08c10; }
+.login-badge.deny  { background: rgba(224, 90, 74, .16);  color: #e05a4a; }
+.login-badge.new   { background: rgba(60, 130, 220, .16); color: #3c82dc; }
+
+.login-event-ua { margin-top: 5px; }
+.login-event-ua summary {
+  cursor: pointer;
+  font-size: .76rem;
+  color: var(--text-light);
+  opacity: .7;
+}
+.login-event-ua code {
+  display: block;
+  margin-top: 5px;
+  padding: 7px 9px;
+  border-radius: 8px;
+  background: rgba(128, 128, 128, .1);
+  font-size: .72rem;
+  direction: ltr;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+/* شارة العدّاد في القائمة الجانبية */
+.nav-badge {
+  display: inline-block;
+  margin-inline-start: 8px;
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #e05a4a;
+  color: #fff;
+  font-size: .72rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* ---------- 4) طبقة إخفاء احتياطية ----------
+   الحماية الحقيقية أن الواجهة غير موجودة في الصفحة أصلاً،
+   وهذه مجرد طبقة إضافية لو حدث خطأ في التوقيت. */
+body.admin-locked #admin-root { display: none !important; }
+
+/* ---------- 5) تحسينات عامة ---------- */
+.data-card { overflow-wrap: anywhere; }
+.section-toolbar { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: flex-end; }
+
+@media (max-width: 560px) {
+  .login-event { flex-direction: column; gap: 4px; }
+  .login-event-time { min-width: 0; }
+  .login-toolbar-actions { width: 100%; }
+  .login-toolbar-actions select.editable-input { flex: 1 1 100%; min-width: 0; }
+}
